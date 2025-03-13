@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑肿瘤医学诊断平台 - 脑部检测</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            margin-top: 30px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 20px;
+        }
+
+        /* 按钮组样式 */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 30px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+        .upload-btn[disabled] {
+            background: #90CAF9;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .upload-btn:hover:not([disabled]) {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 6px rgba(33,150,243,0.2);
+        }
+
+        /* 模型选择器 */
+        .model-selector {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .model-btn {
+            padding: 8px 25px;
+            border-radius: 20px;
+            border: 2px solid #2196F3;
+            background: white;
+            color: #2196F3;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .model-btn.active {
+            background: #2196F3;
+            color: white;
+        }
+
+        /* 上传区域 */
+        .upload-section {
+            flex: 1;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .drop-zone {
+            border: 2px dashed #90CAF9;
+            padding: 30px;
+            text-align: center;
+            color: #757575;
+            margin-top: 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .drop-zone.dragover {
+            border-color: #2196F3;
+            background-color: #E3F2FD;
+        }
+        .preview-img {
+            max-width: 100%;
+            margin-top: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        /* 结果区域 */
+        .results {
+            flex: 1;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .result-section {
+            margin-bottom: 30px;
+        }
+        .result-header {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .result-item {
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: transform 0.2s;
+        }
+        .malignancy.benign {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        .malignancy.malignant {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+        .confidence-bar {
+            margin-top: 8px;
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .confidence-progress {
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+        }
+        .position-info {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 8px;
+            background: #f0f0f0;
+            padding: 6px;
+            border-radius: 4px;
+        }
+        .medical-analysis {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            padding: 15px;
+            background: #fff;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196F3;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span class="logo-text">CT</span>
+            <span class="logo-title">脑肿瘤医学诊断平台</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('diagnosis') }}">肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}">肿瘤分割</a></li>
+                <li class="active"><a href="{{ url_for('analysis') }}">脑部检测</a></li>
+                <li><a href="{{ url_for('records') }}">治疗记录</a></li>
+                <li class="user-profile">
+                    <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                </li>
+                <li><a href="{{ url_for('logout') }}">退出登录</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="analysis-container">
+            <h2>脑部检测 - 智能分析系统</h2>
+            
+            <div class="model-selector">
+                <div class="model-btn active" data-model="deepseek">DeepSeek 医学分析</div>
+                <div class="model-btn" data-model="qwen">通义千问 医学分析</div>
+            </div>
+
+            <div class="loading-overlay" id="loading">
+                <div class="spinner"></div>
+            </div>
+
+    <div class="container">
+        <div class="upload-section">
+            <div class="button-group">
+                <label class="upload-btn">
+                    📁 选择文件
+                    <input type="file" id="fileInput" accept="image/png, image/jpeg" hidden>
+                </label>
+                <button class="upload-btn" id="detectBtn" disabled>开始检测</button>
+            </div>
+
+            <div class="drop-zone" id="dropZone">
+                🖼️ 拖放文件到此处上传
+                <div style="font-size: 0.9em; color: #999; margin-top: 8px;">支持格式： JPG,PNG, JPEG</div>
+            </div>
+
+            <div style="margin-top: 25px;">
+                <img id="preview" class="preview-img">
+                <img id="resultPreview" class="preview-img">
+            </div>
+        </div>
+
+        <div class="results" id="resultsContainer"></div>
+    </div>
+        </div>
+    </main>
+
+    <script>
+        // DOM元素
+        const fileInput = document.getElementById('fileInput');
+        const detectBtn = document.getElementById('detectBtn');
+        const dropZone = document.getElementById('dropZone');
+        const preview = document.getElementById('preview');
+        const resultPreview = document.getElementById('resultPreview');
+        const loadingOverlay = document.getElementById('loading');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // 状态变量
+        let currentModel = 'deepseek';
+        let selectedFile = null;
+
+        // 模型切换
+        document.querySelectorAll('.model-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentModel = this.dataset.model;
+            });
+        });
+
+        // 文件选择处理
+        fileInput.addEventListener('change', e => handleFileSelection(e.target.files[0]));
+
+        // 拖放处理
+        ['dragover', 'dragleave'].forEach(event => {
+            dropZone.addEventListener(event, e => {
+                e.preventDefault();
+                dropZone.classList.toggle('dragover', event === 'dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files[0]) handleFileSelection(files[0]);
+        });
+
+        // 文件选择处理函数
+        function handleFileSelection(file) {
+            // 验证文件类型
+            if (!['image/jpg','image/png', 'image/jpeg'].includes(file.type)) {
+                alert('支持JPG,PNG和JPEG格式的图片');
+                return;
+            }
+
+            // 预览图片
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                resultPreview.style.display = 'none';
+                resultsContainer.innerHTML = '';
+            };
+            reader.readAsDataURL(file);
+
+            // 保存文件并启用检测按钮
+            selectedFile = file;
+            detectBtn.disabled = false;
+        }
+
+        // 开始检测
+        detectBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            loadingOverlay.style.display = 'flex';
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('model', currentModel);
+
+                const response = await fetch('/detect', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`请求失败: ${response.status}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error(data.error);
+                showResults(data);
+
+            } catch (error) {
+                alert(`检测失败: ${error.message}`);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        });
+
+        // 结果显示函数
+        function showResults(data) {
+            const resultHTML = `
+                <div class="model-info">
+                    分析模型：<strong>${currentModel === 'deepseek' ? 'DeepSeek' : '通义千问'}</strong>
+                </div>
+                ${createSection('📊 良恶性分析', data.malignancy, true)}
+                ${createSection('🔍 肿瘤检测结果', data.detections)}
+                ${createSection('📈 类型概率分布', data.classifications)}
+                ${createAnalysis(data.medical_analysis)}
+            `;
+
+            if (data.result_image) {
+                resultPreview.src = `/uploads/${data.result_image}`;
+                resultPreview.style.display = 'block';
+            }
+            resultsContainer.innerHTML = resultHTML;
+        }
+
+        // 辅助函数：创建结果区块
+        function createSection(title, items, isMalignancy = false) {
+            if (!items?.length) return '';
+            return `
+                <div class="result-section">
+                    <div class="result-header">${title}</div>
+                    ${items.map(item => `
+                        <div class="result-item ${isMalignancy ? `malignancy ${item.class}` : ''}">
+                            <div class="result-header-line">
+                                <span>${item.class}</span>
+                                <strong>${isMalignancy ? item.display_prob : item.display_conf}</strong>
+                            </div>
+                            ${isMalignancy ? `
+                            <div class="confidence-bar">
+                                <div class="confidence-progress"
+                                     style="width: ${item.probability * 100}%;
+                                            background: ${item.class === '良性' ? '#4CAF50' : '#f44336'}">
+                                </div>
+                            </div>
+                            <div class="malignancy-tip">${getMalignancyTip(item.class)}</div>
+                            ` : ''}
+                            ${item.position ? `
+                            <div class="position-info">
+                                <span>坐标：(${item.position.x1}, ${item.position.y1}) → (${item.position.x2}, ${item.position.y2})</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 辅助函数：创建医学分析
+        function createAnalysis(content) {
+            if (!content) return '';
+            return `
+                <div class="result-section">
+                    <div class="result-header">📝 医学分析建议</div>
+                    <div class="medical-analysis">${content}</div>
+                </div>
+            `;
+        }
+
+        // 辅助函数：获取良恶性提示
+        function getMalignancyTip(type) {
+            return {
+                '良性': '建议每6个月复查MRI，观察肿瘤大小变化',
+                '恶性': '建议立即联系神经外科医生进行进一步诊断'
+            }[type] || '请咨询专业医生获取详细建议';
+        }
+    </script>
+</body>
+</html>

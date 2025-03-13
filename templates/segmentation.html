@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑肿瘤医学诊断平台 - 肿瘤分割</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span class="logo-text">CT</span>
+            <span class="logo-title">脑肿瘤医学诊断平台</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('diagnosis') }}">肿瘤诊断</a></li>
+                <li class="active"><a href="{{ url_for('segmentation') }}">肿瘤分割</a></li>
+                <li><a href="{{ url_for('analysis') }}">脑部检测</a></li>
+                <li><a href="{{ url_for('records') }}">治疗记录</a></li>
+                <li class="user-profile">
+                    <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                </li>
+                <li><a href="{{ url_for('logout') }}">退出登录</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="segmentation-container">
+            <h2>脑肿瘤分割</h2>
+            
+            <div class="segmentation-content">
+                <div class="segmentation-images">
+                    <div class="original-image">
+                        <h3>原始图像</h3>
+                        <div class="image-container">
+                            <img id="original-image" src="{% if result %}{{ result.original_image }}{% else %}{{ url_for('static', filename='images/brain-placeholder.jpg') }}{% endif %}" alt="原始脑部扫描图像">
+                        </div>
+                    </div>
+                    
+                    <div class="segmented-image">
+                        <h3>分割结果</h3>
+                        <div class="image-container">
+                            <img id="segmented-image" src="{% if result %}{{ result.segmentation_image }}{% else %}{{ url_for('static', filename='images/segmentation-placeholder.png') }}{% endif %}" alt="分割结果图像">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="segmentation-controls-container">
+                    <div class="segmentation-controls">
+                        <h3>分割阈值：</h3>
+                        <input type="range" id="threshold-slider" min="0" max="100" value="50" class="slider">
+                        <div class="threshold-value">50%</div>
+                    </div>
+                    
+                    <div class="segmentation-controls">
+                        <h3>高斯滤波：</h3>
+                        <input type="range" id="gaussian-slider" min="0" max="15" value="0" class="slider">
+                        <div class="gaussian-value">0</div>
+                    </div>
+                    
+                    <div class="segmentation-controls">
+                        <h3>对比度调整：</h3>
+                        <input type="range" id="contrast-slider" min="30" max="200" value="100" class="slider">
+                        <div class="contrast-value">100%</div>
+                    </div>
+                </div>
+                
+                <div class="segmentation-results">
+                    <div class="result-section">
+                        <h3>分割结果图</h3>
+                        <div class="result-images">
+                            <div class="result-image">
+                                <img id="mask-image" src="{% if result %}{{ result.mask_image }}{% else %}{{ url_for('static', filename='images/mask-placeholder.png') }}{% endif %}" alt="肿瘤掩码图像">
+                                <div class="image-label">肿瘤掩码</div>
+                            </div>
+                            <div class="result-image">
+                                <img id="overlay-image" src="{% if result %}{{ result.overlay_image }}{% else %}{{ url_for('static', filename='images/overlay-placeholder.png') }}{% endif %}" alt="叠加图像">
+                                <div class="image-label">叠加图像</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if result and result.error %}
+                    <div class="error-message">
+                        <p>{{ result.error }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="upload-section">
+                    <h3>上传脑部CT</h3>
+                    <form action="/upload_segmentation" method="post" enctype="multipart/form-data">
+                        <div class="file-upload-btn">
+                            <input type="file" name="file" id="file-upload" accept=".jpg,.jpeg,.png" onchange="previewImage(this)">
+                            <label for="file-upload">选择文件</label>
+                        </div>
+                        <button type="submit" class="btn-upload">开始分割</button>
+                        <button type="button" class="btn-cancel">清除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    document.getElementById('original-image').src = e.target.result;
+                    // 清除分割结果图像
+                    document.getElementById('segmented-image').src = "{{ url_for('static', filename='images/segmentation-placeholder.png') }}";
+                    document.getElementById('mask-image').src = "{{ url_for('static', filename='images/mask-placeholder.png') }}";
+                    document.getElementById('overlay-image').src = "{{ url_for('static', filename='images/overlay-placeholder.png') }}";
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.querySelector('.btn-cancel').addEventListener('click', function() {
+            document.getElementById('file-upload').value = '';
+            document.getElementById('original-image').src = "{{ url_for('static', filename='images/brain-placeholder.jpg') }}";
+            document.getElementById('segmented-image').src = "{{ url_for('static', filename='images/segmentation-placeholder.png') }}";
+            document.getElementById('mask-image').src = "{{ url_for('static', filename='images/mask-placeholder.png') }}";
+            document.getElementById('overlay-image').src = "{{ url_for('static', filename='images/overlay-placeholder.png') }}";
+        });
+        
+        // 阈值滑块事件 - 实时更新显示值并处理图像
+        document.getElementById('threshold-slider').addEventListener('input', function() {
+            document.querySelector('.threshold-value').textContent = this.value + '%';
+            // 添加防抖处理，避免频繁请求
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(processImageWithParams, 300);
+        });
+        
+        // 高斯滤波滑块事件 - 实时更新显示值并处理图像
+        document.getElementById('gaussian-slider').addEventListener('input', function() {
+            document.querySelector('.gaussian-value').textContent = this.value;
+            // 添加防抖处理，避免频繁请求
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(processImageWithParams, 300);
+        });
+        
+        // 对比度滑块事件 - 实时更新显示值并处理图像
+        document.getElementById('contrast-slider').addEventListener('input', function() {
+            document.querySelector('.contrast-value').textContent = this.value + '%';
+            // 添加防抖处理，避免频繁请求
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(processImageWithParams, 300);
+        });
+        
+        // 处理图像参数变化，统一处理函数
+        function processImageWithParams() {
+            const threshold = document.getElementById('threshold-slider').value;
+            const gaussianBlur = document.getElementById('gaussian-slider').value;
+            const contrast = document.getElementById('contrast-slider').value;
+            const originalImage = document.getElementById('original-image').src;
+            
+            // 只有在已有图像的情况下才发送请求
+            if (originalImage && !originalImage.includes('brain-placeholder.jpg')) {
+                // 添加加载状态指示
+                const resultImages = document.querySelectorAll('.result-image img');
+                resultImages.forEach(img => {
+                    img.classList.add('processing');
+                    img.style.opacity = '0.5';
+                });
+                
+                // 添加加载提示
+                const loadingMsg = document.createElement('div');
+                loadingMsg.className = 'loading-message';
+                loadingMsg.textContent = '处理中...';
+                document.querySelector('.segmentation-results').appendChild(loadingMsg);
+                
+                fetch('/adjust_image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        threshold: threshold,
+                        gaussian_blur: gaussianBlur,
+                        contrast: contrast,
+                        image_path: originalImage.replace(window.location.origin, '')
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // 移除加载状态
+                    resultImages.forEach(img => {
+                        img.classList.remove('processing');
+                        img.style.opacity = '1';
+                    });
+                    
+                    // 移除加载提示
+                    const loadingMsg = document.querySelector('.loading-message');
+                    if (loadingMsg) loadingMsg.remove();
+                    
+                    if (data.success) {
+                        // 更新分割结果图像
+                        document.getElementById('segmented-image').src = data.preprocessed_image;
+                        document.getElementById('mask-image').src = data.new_mask_image;
+                        document.getElementById('overlay-image').src = data.new_overlay_image;
+                    } else {
+                        console.error('图像处理失败:', data.message);
+                        // 显示错误消息
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'error-message';
+                        errorMsg.innerHTML = `<p>处理失败: ${data.message}</p>`;
+                        document.querySelector('.segmentation-results').appendChild(errorMsg);
+                        
+                        // 3秒后自动移除错误消息
+                        setTimeout(() => {
+                            errorMsg.remove();
+                        }, 3000);
+                    }
+                })
+                .catch(error => {
+                    console.error('图像处理请求错误:', error);
+                    // 移除加载状态
+                    resultImages.forEach(img => {
+                        img.classList.remove('processing');
+                        img.style.opacity = '1';
+                    });
+                    
+                    // 移除加载提示
+                    const loadingMsg = document.querySelector('.loading-message');
+                    if (loadingMsg) loadingMsg.remove();
+                    
+                    // 显示错误消息
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'error-message';
+                    errorMsg.innerHTML = '<p>网络请求错误，请稍后重试</p>';
+                    document.querySelector('.segmentation-results').appendChild(errorMsg);
+                    
+                    // 3秒后自动移除错误消息
+                    setTimeout(() => {
+                        errorMsg.remove();
+                    }, 3000);
+                });
+            }
+        }
+        
+        // 为所有滑块添加change事件监听器
+        document.getElementById('threshold-slider').addEventListener('change', processImageWithParams);
+        document.getElementById('gaussian-slider').addEventListener('change', processImageWithParams);
+        document.getElementById('contrast-slider').addEventListener('change', processImageWithParams);
+    </script>
+</body>
+</html>

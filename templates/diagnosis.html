@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑肿瘤医学诊断平台 - 肿瘤诊断</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span class="logo-text">CT</span>
+            <span class="logo-title">脑肿瘤医学诊断平台</span>
+        </div>
+        <nav>
+            <ul>
+                <li class="active"><a href="{{ url_for('diagnosis') }}">肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}">肿瘤分割</a></li>
+                <li><a href="{{ url_for('analysis') }}">脑部检测</a></li>
+                <li><a href="{{ url_for('records') }}">治疗记录</a></li>
+                <li class="user-profile">
+                    <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                </li>
+                <li><a href="{{ url_for('logout') }}">退出登录</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="diagnosis-container">
+            <h2>脑肿瘤辅助诊断</h2>
+            <div class="diagnosis-status">无肿瘤</div>
+
+            <div class="diagnosis-content">
+                <div class="image-upload-section">
+                    <div class="upload-preview">
+                        <img id="preview-image" src="{{ url_for('static', filename='images/brain-placeholder.jpg') }}" alt="脑部扫描图像">
+                    </div>
+                    <div class="upload-controls">
+                        <h3>上传脑部CT</h3>
+                        <form action="/upload_diagnosis" method="post" enctype="multipart/form-data">
+                            <div class="file-upload-btn">
+                                <input type="file" name="file" id="file-upload" accept=".jpg,.jpeg,.png" onchange="previewImage(this)">
+                                <label for="file-upload">选择文件</label>
+                            </div>
+                            <button type="submit" class="btn-upload">开始上传</button>
+                            <button type="button" class="btn-cancel">清除</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="diagnosis-result">
+                    <h3>诊断结果</h3>
+                    <div class="result-container">
+                        <div class="result-item">
+                            <div class="result-label">诊断结果:</div>
+                            <div class="result-value" id="diagnosis-result">{% if result %}{% if result.has_tumor %}有肿瘤{% else %}无肿瘤{% endif %}{% else %}无肿瘤{% endif %}</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">置信度:</div>
+                            <div class="result-value" id="confidence">{% if result %}{{ "%.2f"|format(result.confidence) }}%{% else %}0%{% endif %}</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">建议:</div>
+                            <div class="result-value" id="recommendation">{% if result %}{{ result.recommendation }}{% else %}无需进一步治疗，建议定期复查。{% endif %}</div>
+                        </div>
+                    </div>
+                    {% if result and result.result_image %}
+                    <div class="result-image-container">
+                        <h4>检测结果图像</h4>
+                        <img src="{{ result.result_image }}" alt="检测结果图像" class="result-image">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    document.getElementById('preview-image').src = e.target.result;
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        document.querySelector('.btn-cancel').addEventListener('click', function() {
+            document.getElementById('file-upload').value = '';
+            document.getElementById('preview-image').src = "{{ url_for('static', filename='images/brain-placeholder.jpg') }}";
+        });
+    </script>
+</body>
+</html>

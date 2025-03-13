@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑肿瘤医学诊断平台 - 治疗记录</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <span class="logo-text">CT</span>
+            <span class="logo-title">脑肿瘤医学诊断平台</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('diagnosis') }}">肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}">肿瘤分割</a></li>
+                <li><a href="{{ url_for('analysis') }}">脑部检测</a></li>
+                <li class="active"><a href="{{ url_for('records') }}">治疗记录</a></li>
+                <li class="user-profile">
+                    <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                </li>
+                <li><a href="{{ url_for('logout') }}">退出登录</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="records-container">
+            <h2>患者治疗记录</h2>
+            
+            <div class="records-content">
+                <div class="records-filter">
+                    <input type="text" id="search-records" placeholder="搜索患者记录...">
+                    <button class="btn-search">搜索</button>
+                    <button class="btn-add-record" onclick="openAddRecordModal()">添加记录</button>
+                    <button class="btn-delete-all" onclick="deleteSelectedRecords()">一键删除</button>
+                </div>
+
+                <!-- 添加记录模态框 -->
+                <div id="add-record-modal" class="modal">
+                    <div class="modal-content">
+                        <h3>添加治疗记录</h3>
+                        <form id="add-record-form" action="/add_record" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="initial-image">初始图片：</label>
+                                <input type="file" id="initial-image" name="initial_image" accept=".jpg,.jpeg,.png" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="mask-image">掩膜图片：</label>
+                                <input type="file" id="mask-image" name="mask_image" accept=".jpg,.jpeg,.png" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="detection-date">检测时间：</label>
+                                <input type="date" id="detection-date" name="detection_date" required>
+                            </div>
+                            <div class="form-buttons">
+                                <button type="submit" class="btn-submit">提交</button>
+                                <button type="button" class="btn-cancel" onclick="closeAddRecordModal()">取消</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="records-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all" onclick="toggleSelectAll()"></th>
+                                <th>初始图片</th>
+                                <th>掩膜图片</th>
+                                <th>检测时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in records %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="record-checkbox" data-id="{{ record.id }}">
+                                </td>
+                                <td>
+                                    <img src="{{ url_for('static', filename=record.initial_image) }}" alt="脑部扫描图像" class="record-thumbnail">
+                                </td>
+                                <td>
+                                    <img src="{{ url_for('static', filename=record.mask_image) }}" alt="掩膜图像" class="record-thumbnail">
+                                </td>
+                                <td>{{ record.detection_date }}</td>
+                                <td>
+                                    <button class="btn-view" onclick="viewRecord({{ record.id }})">查看</button>
+                                    <button class="btn-delete" onclick="deleteRecord({{ record.id }})">删除</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <!-- 更多记录行 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination">
+                    <span>共 1 页</span>
+                    <button class="btn-prev" disabled>上一页</button>
+                    <span class="current-page">1</span>
+                    <button class="btn-next" disabled>下一页</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 引入治疗记录页面的JavaScript文件 -->
+    <script src="{{ url_for('static', filename='js/records.js') }}"></script>
+    <script>
+        // 关闭模态框的点击事件
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+        
+        // 打开添加记录模态框
+        function openAddRecordModal() {
+            document.getElementById('add-record-modal').style.display = 'flex';
+        }
+        
+        // 关闭添加记录模态框
+        function closeAddRecordModal() {
+            document.getElementById('add-record-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
