@@ -54,10 +54,12 @@
                             <h3><i class="fas fa-upload"></i> 原始图像</h3>
                         </div>
                         <div class="image-upload-section card-section">
-                            <div class="upload-preview">
-                                <img id="preview-image" src="{% if result %}{{ result.original_image }}{% else %}{% endif %}">
-                                <div class="preview-overlay" {% if result %}style="opacity: 0;"{% endif %}>
-                                    <i class="fas fa-brain fa-3x"></i>
+                            <div class="image-container">
+                                <div class="upload-preview">
+                                    <img id="preview-image" src="{% if result %}{{ result.original_image }}{% else %}{% endif %}">
+                                    <div class="preview-overlay" {% if result %}style="opacity: 0;"{% endif %}>
+                                        <i class="fas fa-brain fa-3x"></i>
+                                    </div>
                                 </div>
                             </div>
                             <div class="upload-controls">
@@ -80,18 +82,18 @@
                             <h3><i class="fas fa-clipboard-check"></i> 诊断结果</h3>
                         </div>
                         <div class="diagnosis-result card-section">
-                            {% if result and result.result_image %}
-                            <div class="result-image-container">
-                                <div class="result-image-wrapper">
+                            <div class="image-container">
+                                {% if result and result.result_image %}
+                                <div class="upload-preview">
                                     <img src="{{ result.result_image }}" class="result-image">
                                 </div>
+                                {% else %}
+                                <div class="empty-result">
+                                    <i class="fas fa-image"></i>
+                                    <p>上传图像后将显示检测结果</p>
+                                </div>
+                                {% endif %}
                             </div>
-                            {% else %}
-                            <div class="empty-result">
-                                <i class="fas fa-image"></i>
-                                <p>上传图像后将显示检测结果</p>
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -140,7 +142,7 @@
                 document.querySelector('.preview-overlay').style.opacity = '1';
                 
                 // 清除诊断结果区域，恢复为空状态
-                const diagnosisResult = document.querySelector('.diagnosis-result');
+                const diagnosisResult = document.querySelector('.diagnosis-result .image-container');
                 if (diagnosisResult) {
                     diagnosisResult.innerHTML = `
                         <div class="empty-result">
@@ -153,71 +155,41 @@
                 // 重置诊断详情
                 document.getElementById('diagnosis-result').textContent = '无肿瘤';
                 document.getElementById('diagnosis-result').className = 'result-value text-success';
+                document.getElementById('confidence').querySelector('span').textContent = '0%';
                 document.getElementById('confidence-fill').style.width = '0%';
-                document.getElementById('confidence-fill').className = 'confidence-fill';
-                document.querySelector('#confidence span').textContent = '0%';
                 document.getElementById('recommendation').textContent = '无需进一步治疗，建议定期复查。';
-                
-                // 重置状态指示器
-                const statusIndicator = document.querySelector('.diagnosis-status');
-                statusIndicator.className = 'diagnosis-status status-success';
-                statusIndicator.innerHTML = '<i class="fas fa-check-circle"></i> 无肿瘤';
-            });
-            
-            // 图片预览时隐藏覆盖层
-            const previewImage = document.getElementById('preview-image');
-            const previewOverlay = document.querySelector('.preview-overlay');
-            
-            previewImage.addEventListener('load', function() {
-                if (this.src) {
-                    previewOverlay.style.opacity = '0';
-                } else {
-                    previewOverlay.style.opacity = '1';
-                }
             });
             
             // 添加卡片动画效果
             const cardSections = document.querySelectorAll('.card-section');
-            cardSections.forEach(section => {
-                section.classList.add('fade-in');
+            cardSections.forEach((section, index) => {
+                setTimeout(() => {
+                    section.classList.add('fade-in');
+                }, index * 100);
             });
             
-            // 表单提交时显示加载动画
-            const diagnosisForm = document.getElementById('diagnosis-form');
-            if (diagnosisForm) {
-                diagnosisForm.addEventListener('submit', function(e) {
-                    const fileInput = document.getElementById('file-upload');
-                    if (!fileInput.files || fileInput.files.length === 0) {
-                        e.preventDefault();
-                        alert('请先选择一个文件');
-                        return false;
-                    }
-                    
-                    const submitBtn = this.querySelector('button[type="submit"]');
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
-                    submitBtn.disabled = true;
-                });
-            }
-            
-            // 设置置信度条的宽度和颜色
+            // 设置置信度条宽度
             const confidenceFill = document.getElementById('confidence-fill');
             if (confidenceFill) {
-                {% if result %}
-                const confidence = {{ result.confidence }};
-                confidenceFill.style.width = confidence + '%';
+                const confidenceValue = parseFloat(document.getElementById('confidence').querySelector('span').textContent);
+                confidenceFill.style.width = confidenceValue + '%';
                 
-                // 根据置信度值设置不同的颜色类
-                if (confidence < 30) {
+                // 根据置信度值设置不同的颜色
+                if (confidenceValue < 40) {
                     confidenceFill.classList.add('confidence-fill-low');
-                } else if (confidence < 70) {
+                } else if (confidenceValue < 70) {
                     confidenceFill.classList.add('confidence-fill-medium');
                 } else {
                     confidenceFill.classList.add('confidence-fill-high');
                 }
-                {% else %}
-                confidenceFill.style.width = '0%';
-                {% endif %}
             }
+            
+            // 表单提交时显示加载动画
+            document.getElementById('diagnosis-form').addEventListener('submit', function() {
+                const submitBtn = this.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+                submitBtn.disabled = true;
+            });
         });
         
         // 图像预览功能
@@ -226,7 +198,14 @@
                 var reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    document.getElementById(previewId).src = e.target.result;
+                    const previewImg = document.getElementById(previewId);
+                    previewImg.src = e.target.result;
+                    
+                    // 隐藏覆盖层
+                    const overlay = previewImg.parentElement.querySelector('.preview-overlay');
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                    }
                 }
                 
                 reader.readAsDataURL(input.files[0]);

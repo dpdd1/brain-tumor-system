@@ -404,19 +404,33 @@ def adjust_image():
     try:
         data = request.get_json()
         threshold = float(data.get('threshold', 50))
-        gaussian_blur = data.get('gaussian_blur', 0)  # 高斯滤波核大小
-        contrast = data.get('contrast', 100)  # 对比度调整值
+        gaussian_blur = int(data.get('gaussian_blur', 0))  # 高斯滤波核大小
+        contrast = float(data.get('contrast', 100))  # 对比度调整值
         image_path = data.get('image_path')
         
-        if not image_path or not os.path.exists(os.path.join('static', image_path.lstrip('/'))):
-            return jsonify({'success': False, 'message': '图像不存在'})
+        print(f"接收到的图像路径: {image_path}")
+        
+        # 确保路径格式正确
+        if image_path.startswith('/static/'):
+            file_path = image_path.lstrip('/')
+        else:
+            file_path = image_path.lstrip('/')
+            if not file_path.startswith('static/'):
+                file_path = f"static/{file_path}"
+        
+        print(f"处理后的文件路径: {file_path}")
+        
+        if not os.path.exists(file_path):
+            return jsonify({'success': False, 'message': f'图像不存在: {file_path}'})
         
         # 重新处理图像，使用更敏感的阈值范围
         threshold_value = max(0.05, min(0.95, threshold / 100.0))  # 将阈值映射到0.05-0.95的范围
-        file_path = os.path.join('static', image_path.lstrip('/'))
         
         # 读取原始图像
         original_img = cv2.imread(file_path)
+        if original_img is None:
+            return jsonify({'success': False, 'message': f'无法读取图像: {file_path}'})
+            
         original_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2RGB)
         
         # 应用图像预处理
@@ -709,7 +723,7 @@ def adjust_threshold():
 def analysis():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    return redirect(url_for('brain_analysis'))
+    return render_template('classification.html')
 
 # 新的脑部检测页面 - 重定向到新的分析系统
 @app.route('/brain_analysis')

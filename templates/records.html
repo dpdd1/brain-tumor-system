@@ -183,6 +183,46 @@
         </div>
     </div>
 
+    <!-- 记录详情模态框 -->
+    <div id="record-detail-modal" class="modal">
+        <div class="modal-content record-detail-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-clipboard-check"></i> 治疗记录详情</h3>
+                <span class="close-modal" onclick="closeRecordDetailModal()"><i class="fas fa-times"></i></span>
+            </div>
+            <div class="record-detail-body">
+                <div class="record-info">
+                    <div class="record-info-item">
+                        <span class="record-info-label"><i class="fas fa-calendar-alt"></i> 检测时间：</span>
+                        <span id="detail-detection-date" class="record-info-value"></span>
+                    </div>
+                    <div class="record-info-item">
+                        <span class="record-info-label"><i class="fas fa-clock"></i> 创建时间：</span>
+                        <span id="detail-created-at" class="record-info-value"></span>
+                    </div>
+                </div>
+                <div class="record-images">
+                    <div class="record-image-container">
+                        <h4><i class="fas fa-brain"></i> 原始图像</h4>
+                        <div class="record-image-wrapper">
+                            <img id="detail-initial-image" src="" alt="原始图像">
+                        </div>
+                    </div>
+                    <div class="record-image-container">
+                        <h4><i class="fas fa-layer-group"></i> 掩膜图像</h4>
+                        <div class="record-image-wrapper">
+                            <img id="detail-mask-image" src="" alt="掩膜图像">
+                        </div>
+                    </div>
+                </div>
+                <div class="record-actions">
+                    <button class="btn-primary" onclick="downloadImages()"><i class="fas fa-download"></i> 下载图像</button>
+                    <button class="btn-danger" onclick="deleteCurrentRecord()"><i class="fas fa-trash-alt"></i> 删除记录</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
@@ -290,16 +330,109 @@
         }
         
         // 查看记录详情
+        let currentRecordId = null;
+        
         function viewRecord(id) {
-            console.log('查看记录:', id);
-            // 实现查看记录详情的功能
+            currentRecordId = id;
+            
+            // 获取记录详情
+            fetch(`/get_record/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const record = data.record;
+                        
+                        // 填充记录详情
+                        document.getElementById('detail-detection-date').textContent = record.detection_date;
+                        document.getElementById('detail-created-at').textContent = record.created_at;
+                        
+                        // 设置图像
+                        document.getElementById('detail-initial-image').src = `/static/${record.initial_image}`;
+                        document.getElementById('detail-mask-image').src = `/static/${record.mask_image}`;
+                        
+                        // 显示模态框
+                        const modal = document.getElementById('record-detail-modal');
+                        modal.style.display = 'flex';
+                        modal.classList.add('fade-in');
+                    } else {
+                        alert('获取记录详情失败：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取记录详情时出错:', error);
+                    alert('获取记录详情时出错，请稍后重试');
+                });
+        }
+        
+        // 关闭记录详情模态框
+        function closeRecordDetailModal() {
+            const modal = document.getElementById('record-detail-modal');
+            modal.classList.add('fade-out');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.classList.remove('fade-out');
+                currentRecordId = null;
+            }, 300);
+        }
+        
+        // 下载当前查看的图像
+        function downloadImages() {
+            if (!currentRecordId) return;
+            
+            const initialImage = document.getElementById('detail-initial-image').src;
+            const maskImage = document.getElementById('detail-mask-image').src;
+            
+            // 创建下载链接
+            const initialLink = document.createElement('a');
+            initialLink.href = initialImage;
+            initialLink.download = `原始图像_${currentRecordId}.jpg`;
+            document.body.appendChild(initialLink);
+            initialLink.click();
+            document.body.removeChild(initialLink);
+            
+            // 延迟一下再下载第二张图，避免浏览器阻止
+            setTimeout(() => {
+                const maskLink = document.createElement('a');
+                maskLink.href = maskImage;
+                maskLink.download = `掩膜图像_${currentRecordId}.jpg`;
+                document.body.appendChild(maskLink);
+                maskLink.click();
+                document.body.removeChild(maskLink);
+            }, 100);
+        }
+        
+        // 删除当前查看的记录
+        function deleteCurrentRecord() {
+            if (!currentRecordId) return;
+            
+            if (confirm('确定要删除这条记录吗？')) {
+                deleteRecord(currentRecordId);
+                closeRecordDetailModal();
+            }
         }
         
         // 删除单条记录
         function deleteRecord(id) {
             if (confirm('确定要删除这条记录吗？')) {
-                console.log('删除记录:', id);
-                // 实现删除记录的功能
+                fetch(`/delete_record/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 删除成功，刷新页面
+                        location.reload();
+                    } else {
+                        alert('删除失败：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('删除记录时出错:', error);
+                    alert('删除记录时出错，请稍后重试');
+                });
             }
         }
         
@@ -314,8 +447,29 @@
             
             if (confirm(`确定要删除选中的 ${selectedCheckboxes.length} 条记录吗？`)) {
                 const selectedIds = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.id);
-                console.log('批量删除记录:', selectedIds);
-                // 实现批量删除记录的功能
+                
+                fetch('/delete_selected_records', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        record_ids: selectedIds
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 删除成功，刷新页面
+                        location.reload();
+                    } else {
+                        alert('删除失败：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('批量删除记录时出错:', error);
+                    alert('批量删除记录时出错，请稍后重试');
+                });
             }
         }
     </script>

@@ -71,7 +71,7 @@
                         <div class="original-image card-section">
                         <div class="image-container">
                                 <div class="upload-preview">
-                                    <img id="original-image" src="">
+                                    <img id="original-image" src="{% if result %}{{ result.original_image }}{% else %}{% endif %}">
                                     <div class="preview-overlay">
                                         <i class="fas fa-brain fa-3x"></i>
                                     </div>
@@ -86,9 +86,11 @@
                         </div>
                         <div class="segmented-image card-section">
                         <div class="image-container">
-                                <img id="segmented-image" src="{% if result %}{{ result.segmentation_image }}{% else %}{% endif %}">
-                                <div class="preview-overlay">
-                                    <i class="fas fa-layer-group"></i>
+                                <div class="upload-preview">
+                                    <img id="segmented-image" src="{% if result %}{{ result.segmentation_image }}{% else %}{% endif %}">
+                                    <div class="preview-overlay">
+                                        <i class="fas fa-layer-group"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -224,21 +226,76 @@
             // 图片加载时隐藏覆盖层
             const originalImage = document.getElementById('original-image');
             originalImage.addEventListener('load', function() {
-                if (this.src) {
-                    this.parentElement.querySelector('.preview-overlay').style.opacity = '0';
-                } else {
-                    this.parentElement.querySelector('.preview-overlay').style.opacity = '1';
+                if (this.src && this.src !== window.location.href) {
+                    const overlay = this.parentElement.querySelector('.preview-overlay');
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                    }
                 }
             });
             
             const segmentedImage = document.getElementById('segmented-image');
             segmentedImage.addEventListener('load', function() {
-                if (this.src) {
-                    this.parentElement.querySelector('.preview-overlay').style.opacity = '0';
-                } else {
-                    this.parentElement.querySelector('.preview-overlay').style.opacity = '1';
+                if (this.src && this.src !== window.location.href) {
+                    const overlay = this.parentElement.querySelector('.preview-overlay');
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                    }
                 }
             });
+            
+            const maskImage = document.getElementById('mask-image');
+            if (maskImage) {
+                maskImage.addEventListener('load', function() {
+                    if (this.src && this.src !== window.location.href) {
+                        const overlay = this.parentElement.querySelector('.image-overlay');
+                        if (overlay) {
+                            overlay.style.opacity = '0';
+                        }
+                    }
+                });
+            }
+            
+            const overlayImage = document.getElementById('overlay-image');
+            if (overlayImage) {
+                overlayImage.addEventListener('load', function() {
+                    if (this.src && this.src !== window.location.href) {
+                        const overlay = this.parentElement.querySelector('.image-overlay');
+                        if (overlay) {
+                            overlay.style.opacity = '0';
+                        }
+                    }
+                });
+            }
+            
+            // 如果页面加载时已有图片，则隐藏覆盖层
+            if (originalImage.src && originalImage.src !== window.location.href) {
+                const originalOverlay = originalImage.parentElement.querySelector('.preview-overlay');
+                if (originalOverlay) {
+                    originalOverlay.style.opacity = '0';
+                }
+            }
+            
+            if (segmentedImage.src && segmentedImage.src !== window.location.href) {
+                const segmentedOverlay = segmentedImage.parentElement.querySelector('.preview-overlay');
+                if (segmentedOverlay) {
+                    segmentedOverlay.style.opacity = '0';
+                }
+            }
+            
+            if (maskImage && maskImage.src && maskImage.src !== window.location.href) {
+                const maskOverlay = maskImage.parentElement.querySelector('.image-overlay');
+                if (maskOverlay) {
+                    maskOverlay.style.opacity = '0';
+                }
+            }
+            
+            if (overlayImage && overlayImage.src && overlayImage.src !== window.location.href) {
+                const overlayImageOverlay = overlayImage.parentElement.querySelector('.image-overlay');
+                if (overlayImageOverlay) {
+                    overlayImageOverlay.style.opacity = '0';
+                }
+            }
             
             // 表单提交时显示加载动画
             document.getElementById('segmentation-form').addEventListener('submit', function() {
@@ -254,17 +311,100 @@
                 var reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    document.getElementById(previewId).src = e.target.result;
+                    const previewImg = document.getElementById(previewId);
+                    previewImg.src = e.target.result;
+                    
+                    // 隐藏覆盖层
+                    const overlay = previewImg.parentElement.querySelector('.preview-overlay');
+                    if (overlay) {
+                        overlay.style.opacity = '0';
+                    }
                 }
                 
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // 更新分割结果（模拟）
+        // 更新分割结果
         function updateSegmentation() {
-            // 这里只是模拟效果，实际应用中可能需要发送AJAX请求到后端进行实时分割
-            console.log('更新分割参数');
+            // 获取当前上传的图像路径
+            const originalImage = document.getElementById('original-image');
+            if (!originalImage.src || originalImage.src === window.location.href) {
+                console.log('没有上传图像，无法调整参数');
+                return;
+            }
+            
+            // 获取图像路径
+            let imagePath = originalImage.src;
+            // 检查是否是数据URL（本地预览）
+            if (imagePath.startsWith('data:')) {
+                alert('请先提交图像进行分割，然后再调整参数');
+                return;
+            }
+            
+            // 处理图像路径，确保正确提取相对路径
+            if (imagePath.includes('/static/')) {
+                imagePath = '/static/' + imagePath.split('/static/')[1];
+            }
+            
+            console.log('使用图像路径:', imagePath);
+            
+            // 获取参数值
+            const threshold = document.getElementById('threshold-slider').value;
+            const gaussianBlur = document.getElementById('gaussian-slider').value;
+            const contrast = document.getElementById('contrast-slider').value;
+            
+            // 显示加载状态
+            const segmentedImage = document.getElementById('segmented-image');
+            const maskImage = document.getElementById('mask-image');
+            const overlayImage = document.getElementById('overlay-image');
+            
+            // 添加加载指示器
+            segmentedImage.parentElement.querySelector('.preview-overlay').style.opacity = '1';
+            maskImage.parentElement.querySelector('.image-overlay').style.opacity = '1';
+            overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '1';
+            
+            // 发送AJAX请求
+            fetch('/adjust_image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    threshold: threshold,
+                    gaussian_blur: gaussianBlur,
+                    contrast: contrast,
+                    image_path: imagePath
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新图像
+                    maskImage.src = `/static/results/${data.mask_image}`;
+                    overlayImage.src = `/static/results/${data.overlay_image}`;
+                    
+                    // 隐藏加载指示器
+                    maskImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+                    overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+                } else {
+                    alert('调整参数失败: ' + data.message);
+                    
+                    // 隐藏加载指示器
+                    segmentedImage.parentElement.querySelector('.preview-overlay').style.opacity = '0';
+                    maskImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+                    overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+                }
+            })
+            .catch(error => {
+                console.error('调整参数时出错:', error);
+                alert('调整参数时出错，请稍后重试');
+                
+                // 隐藏加载指示器
+                segmentedImage.parentElement.querySelector('.preview-overlay').style.opacity = '0';
+                maskImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+                overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+            });
         }
     </script>
 </body>
