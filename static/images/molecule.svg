@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="150" height="150">
+  <circle cx="75" cy="75" r="12" fill="#03A9F4" opacity="0.8" />
+  <circle cx="45" cy="45" r="8" fill="#8BC34A" opacity="0.8" />
+  <circle cx="105" cy="45" r="8" fill="#8BC34A" opacity="0.8" />
+  <circle cx="45" cy="105" r="8" fill="#8BC34A" opacity="0.8" />
+  <circle cx="105" cy="105" r="8" fill="#8BC34A" opacity="0.8" />
+  <circle cx="30" cy="75" r="6" fill="#FF5722" opacity="0.8" />
+  <circle cx="120" cy="75" r="6" fill="#FF5722" opacity="0.8" />
+  <circle cx="75" cy="30" r="6" fill="#FF5722" opacity="0.8" />
+  <circle cx="75" cy="120" r="6" fill="#FF5722" opacity="0.8" />
+  <line x1="75" y1="75" x2="45" y2="45" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+  <line x1="75" y1="75" x2="105" y2="45" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+  <line x1="75" y1="75" x2="45" y2="105" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+  <line x1="75" y1="75" x2="105" y2="105" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+  <line x1="75" y1="75" x2="30" y2="75" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+  <line x1="75" y1="75" x2="120" y2="75" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+  <line x1="75" y1="75" x2="75" y2="30" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+  <line x1="75" y1="75" x2="75" y2="120" stroke="#B0BEC5" stroke-width="2" opacity="0.7" />
+</svg>

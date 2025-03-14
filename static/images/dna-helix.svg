@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200" width="100" height="200">
+  <path fill="none" stroke="#E91E63" stroke-width="2" opacity="0.7" d="M30,10 C45,25 55,25 70,10 C85,-5 95,-5 110,10 M30,40 C45,55 55,55 70,40 C85,25 95,25 110,40 M30,70 C45,85 55,85 70,70 C85,55 95,55 110,70 M30,100 C45,115 55,115 70,100 C85,85 95,85 110,100 M30,130 C45,145 55,145 70,130 C85,115 95,115 110,130 M30,160 C45,175 55,175 70,160 C85,145 95,145 110,160 M30,190 C45,205 55,205 70,190 C85,175 95,175 110,190" />
+  <path fill="none" stroke="#9C27B0" stroke-width="2" opacity="0.7" d="M30,10 L30,190 M70,10 L70,190" />
+  <circle cx="30" cy="10" r="3" fill="#E91E63" />
+  <circle cx="30" cy="40" r="3" fill="#9C27B0" />
+  <circle cx="30" cy="70" r="3" fill="#E91E63" />
+  <circle cx="30" cy="100" r="3" fill="#9C27B0" />
+  <circle cx="30" cy="130" r="3" fill="#E91E63" />
+  <circle cx="30" cy="160" r="3" fill="#9C27B0" />
+  <circle cx="30" cy="190" r="3" fill="#E91E63" />
+  <circle cx="70" cy="10" r="3" fill="#9C27B0" />
+  <circle cx="70" cy="40" r="3" fill="#E91E63" />
+  <circle cx="70" cy="70" r="3" fill="#9C27B0" />
+  <circle cx="70" cy="100" r="3" fill="#E91E63" />
+  <circle cx="70" cy="130" r="3" fill="#9C27B0" />
+  <circle cx="70" cy="160" r="3" fill="#E91E63" />
+  <circle cx="70" cy="190" r="3" fill="#9C27B0" />
+</svg>
