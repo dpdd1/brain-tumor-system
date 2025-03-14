@@ -5,261 +5,104 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>脑肿瘤医学诊断平台 - 脑部检测</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/analysis.css') }}">
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-        .container {
-            display: flex;
-            gap: 30px;
-            margin-top: 30px;
-            max-width: 1200px;
-            margin-left: auto;
-            margin-right: auto;
-            padding: 0 20px;
-        }
-
-        /* 按钮组样式 */
-        .button-group {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .upload-btn {
-            display: inline-flex;
-            align-items: center;
-            padding: 12px 30px;
-            background: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 16px;
-        }
-        .upload-btn[disabled] {
-            background: #90CAF9;
-            cursor: not-allowed;
-            opacity: 0.7;
-        }
-        .upload-btn:hover:not([disabled]) {
-            background: #1976D2;
-            transform: translateY(-2px);
-            box-shadow: 0 2px 6px rgba(33,150,243,0.2);
-        }
-
-        /* 模型选择器 */
-        .model-selector {
-            margin: 20px 0;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-        .model-btn {
-            padding: 8px 25px;
-            border-radius: 20px;
-            border: 2px solid #2196F3;
-            background: white;
-            color: #2196F3;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-        .model-btn.active {
-            background: #2196F3;
-            color: white;
-        }
-
-        /* 上传区域 */
-        .upload-section {
-            flex: 1;
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .drop-zone {
-            border: 2px dashed #90CAF9;
-            padding: 30px;
-            text-align: center;
-            color: #757575;
-            margin-top: 20px;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        .drop-zone.dragover {
-            border-color: #2196F3;
-            background-color: #E3F2FD;
-        }
-        .preview-img {
-            max-width: 100%;
-            margin-top: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            display: none;
-        }
-
-        /* 结果区域 */
-        .results {
-            flex: 1;
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .result-section {
-            margin-bottom: 30px;
-        }
-        .result-header {
-            font-size: 20px;
-            color: #2c3e50;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #eee;
-        }
-        .result-item {
-            padding: 15px;
-            margin-bottom: 12px;
-            border-radius: 8px;
-            background: #f8f9fa;
-            transition: transform 0.2s;
-        }
-        .malignancy.benign {
-            background: #E8F5E9;
-            color: #2E7D32;
-        }
-        .malignancy.malignant {
-            background: #FFEBEE;
-            color: #C62828;
-        }
-        .confidence-bar {
-            margin-top: 8px;
-            height: 4px;
-            background: #eee;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .confidence-progress {
-            height: 100%;
-            transition: width 0.5s ease-in-out;
-        }
-        .position-info {
-            font-size: 0.85em;
-            color: #666;
-            margin-top: 8px;
-            background: #f0f0f0;
-            padding: 6px;
-            border-radius: 4px;
-        }
-        .medical-analysis {
-            white-space: pre-wrap;
-            line-height: 1.6;
-            padding: 15px;
-            background: #fff;
-            border-left: 4px solid #2196F3;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
-
-        /* 加载动画 */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255,255,255,0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 999;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #2196F3;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body>
+<body class="inner-page">
+    <!-- 页面背景效果 -->
+    <div class="page-background">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+        <div class="particles-container" id="particles-js"></div>
+    </div>
+
     <header>
         <div class="logo">
-            <span class="logo-text">CT</span>
+            <i class="fas fa-brain logo-icon"></i>
             <span class="logo-title">脑肿瘤医学诊断平台</span>
         </div>
         <nav>
             <ul>
-                <li><a href="{{ url_for('diagnosis') }}">肿瘤诊断</a></li>
-                <li><a href="{{ url_for('segmentation') }}">肿瘤分割</a></li>
-                <li class="active"><a href="{{ url_for('analysis') }}">脑部检测</a></li>
-                <li><a href="{{ url_for('records') }}">治疗记录</a></li>
+                <li><a href="{{ url_for('diagnosis') }}"><i class="fas fa-stethoscope"></i> 肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
+                <li class="active"><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
+                <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
                 <li class="user-profile">
                     <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                    <span class="user-name">{{ session.get('username', '用户') }}</span>
                 </li>
-                <li><a href="{{ url_for('logout') }}">退出登录</a></li>
+                <li><a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
             </ul>
         </nav>
     </header>
 
     <main>
-        <div class="analysis-container">
-            <h2>脑部检测 - 智能分析系统</h2>
+        <div class="analysis-container card-container">
+            <div class="card-header">
+                <i class="fas fa-brain card-icon"></i>
+                <h2>脑部检测 - 智能分析系统</h2>
+            </div>
             
-            <div class="model-selector">
-                <div class="model-btn active" data-model="deepseek">DeepSeek 医学分析</div>
-                <div class="model-btn" data-model="qwen">通义千问 医学分析</div>
+            <div class="model-selector card-section">
+                <button class="model-btn active" data-model="deepseek">
+                    <i class="fas fa-robot"></i> DeepSeek 医学分析
+                </button>
+                <button class="model-btn" data-model="qwen">
+                    <i class="fas fa-microchip"></i> 通义千问 医学分析
+                </button>
             </div>
 
             <div class="loading-overlay" id="loading">
                 <div class="spinner"></div>
             </div>
 
-    <div class="container">
-        <div class="upload-section">
-            <div class="button-group">
-                <label class="upload-btn">
-                    📁 选择文件
-                    <input type="file" id="fileInput" accept="image/png, image/jpeg" hidden>
-                </label>
-                <button class="upload-btn" id="detectBtn" disabled>开始检测</button>
-            </div>
+            <div class="analysis-content">
+                <div class="upload-section card-section">
+                    <h3><i class="fas fa-upload"></i> 上传脑部CT</h3>
+                    <div class="file-upload-btn">
+                        <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" onchange="previewImage(this, 'preview')">
+                        <label for="fileInput"><i class="fas fa-file-medical"></i> 选择文件</label>
+                    </div>
+                    <button class="btn-primary" id="detectBtn" disabled><i class="fas fa-search"></i> 开始检测</button>
+                    
+                    <div class="drop-zone" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>拖放文件到此处上传</p>
+                    </div>
 
-            <div class="drop-zone" id="dropZone">
-                🖼️ 拖放文件到此处上传
-                <div style="font-size: 0.9em; color: #999; margin-top: 8px;">支持格式： JPG,PNG, JPEG</div>
-            </div>
+                    <div class="image-preview-container">
+                        <div class="image-preview-wrapper">
+                            <img id="preview" class="preview-img" src="">
+                            <div class="preview-overlay">
+                                <i class="fas fa-brain fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            <div style="margin-top: 25px;">
-                <img id="preview" class="preview-img">
-                <img id="resultPreview" class="preview-img">
+                <div class="results-section card-section" id="resultsContainer">
+                    <h3><i class="fas fa-chart-bar"></i> 分析结果</h3>
+                    <div class="empty-results">
+                        <i class="fas fa-search"></i>
+                        <p>上传图像并点击"开始检测"查看分析结果</p>
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <div class="results" id="resultsContainer"></div>
-    </div>
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
     <script>
         // DOM元素
         const fileInput = document.getElementById('fileInput');
         const detectBtn = document.getElementById('detectBtn');
         const dropZone = document.getElementById('dropZone');
         const preview = document.getElementById('preview');
-        const resultPreview = document.getElementById('resultPreview');
         const loadingOverlay = document.getElementById('loading');
         const resultsContainer = document.getElementById('resultsContainer');
+        const previewOverlay = document.querySelector('.preview-overlay');
 
         // 状态变量
         let currentModel = 'deepseek';
@@ -274,19 +117,19 @@
             });
         });
 
-        // 文件选择处理
-        fileInput.addEventListener('change', e => handleFileSelection(e.target.files[0]));
-
         // 拖放处理
-        ['dragover', 'dragleave'].forEach(event => {
+        ['dragover', 'dragleave', 'dragenter'].forEach(event => {
             dropZone.addEventListener(event, e => {
                 e.preventDefault();
-                dropZone.classList.toggle('dragover', event === 'dragover');
+                e.stopPropagation();
+                dropZone.classList.toggle('dragover', event === 'dragover' || event === 'dragenter');
             });
         });
 
         dropZone.addEventListener('drop', e => {
             e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files[0]) handleFileSelection(files[0]);
         });
@@ -295,7 +138,7 @@
         function handleFileSelection(file) {
             // 验证文件类型
             if (!['image/jpg','image/png', 'image/jpeg'].includes(file.type)) {
-                alert('支持JPG,PNG和JPEG格式的图片');
+                alert('支持JPG、PNG和JPEG格式的图片');
                 return;
             }
 
@@ -303,15 +146,27 @@
             const reader = new FileReader();
             reader.onload = e => {
                 preview.src = e.target.result;
-                preview.style.display = 'block';
-                resultPreview.style.display = 'none';
-                resultsContainer.innerHTML = '';
+                previewOverlay.style.opacity = '0';
+                resultsContainer.innerHTML = `
+                    <h3><i class="fas fa-chart-bar"></i> 分析结果</h3>
+                    <div class="empty-results">
+                        <i class="fas fa-search"></i>
+                        <p>上传图像并点击"开始检测"查看分析结果</p>
+                    </div>
+                `;
             };
             reader.readAsDataURL(file);
 
             // 保存文件并启用检测按钮
             selectedFile = file;
             detectBtn.disabled = false;
+        }
+
+        // 图像预览功能
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                handleFileSelection(input.files[0]);
+            }
         }
 
         // 开始检测
@@ -345,8 +200,9 @@
         // 结果显示函数
         function showResults(data) {
             const resultHTML = `
+                <h3><i class="fas fa-chart-bar"></i> 分析结果</h3>
                 <div class="model-info">
-                    分析模型：<strong>${currentModel === 'deepseek' ? 'DeepSeek' : '通义千问'}</strong>
+                    <i class="fas fa-robot"></i> 分析模型：<strong>${currentModel === 'deepseek' ? 'DeepSeek' : '通义千问'}</strong>
                 </div>
                 ${createSection('📊 良恶性分析', data.malignancy, true)}
                 ${createSection('🔍 肿瘤检测结果', data.detections)}
@@ -354,11 +210,15 @@
                 ${createAnalysis(data.medical_analysis)}
             `;
 
-            if (data.result_image) {
-                resultPreview.src = `/uploads/${data.result_image}`;
-                resultPreview.style.display = 'block';
-            }
             resultsContainer.innerHTML = resultHTML;
+            
+            // 添加卡片动画效果
+            const resultSections = document.querySelectorAll('.result-section');
+            resultSections.forEach((section, index) => {
+                setTimeout(() => {
+                    section.classList.add('fade-in');
+                }, index * 100);
+            });
         }
 
         // 辅助函数：创建结果区块
@@ -411,6 +271,16 @@
                 '恶性': '建议立即联系神经外科医生进行进一步诊断'
             }[type] || '请咨询专业医生获取详细建议';
         }
+        
+        // 添加卡片动画效果
+        document.addEventListener('DOMContentLoaded', function() {
+            const cardSections = document.querySelectorAll('.card-section');
+            cardSections.forEach((section, index) => {
+                setTimeout(() => {
+                    section.classList.add('fade-in');
+                }, index * 100);
+            });
+        });
     </script>
 </body>
 </html>

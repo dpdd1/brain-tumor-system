@@ -676,7 +676,7 @@ def detect():
                 )
             except Exception as e:
                 print(f"AI分析失败: {str(e)}")
-                output['medical_analysis'] = "医学分析生成失败"
+                output['medical_analysis'] = f"医学分析生成失败，请稍后再试。错误信息：{str(e)}"
 
         return output
     except Exception as e:
@@ -717,8 +717,6 @@ def brain_analysis():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     return render_template('index1.html')
-
-
 
 # 导出分析PDF
 @app.route('/export_analysis_pdf')

@@ -5,94 +5,233 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>脑肿瘤医学诊断平台 - 肿瘤诊断</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body>
+<body class="inner-page">
+    <!-- 页面背景效果 -->
+    <div class="page-background">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+        <div class="particles-container" id="particles-js"></div>
+    </div>
+
     <header>
         <div class="logo">
-            <span class="logo-text">CT</span>
+            <i class="fas fa-brain logo-icon"></i>
             <span class="logo-title">脑肿瘤医学诊断平台</span>
         </div>
         <nav>
             <ul>
-                <li class="active"><a href="{{ url_for('diagnosis') }}">肿瘤诊断</a></li>
-                <li><a href="{{ url_for('segmentation') }}">肿瘤分割</a></li>
-                <li><a href="{{ url_for('analysis') }}">脑部检测</a></li>
-                <li><a href="{{ url_for('records') }}">治疗记录</a></li>
+                <li class="active"><a href="{{ url_for('diagnosis') }}"><i class="fas fa-stethoscope"></i> 肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
+                <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
+                <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
                 <li class="user-profile">
                     <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                    <span class="user-name">{{ session.get('username', '用户') }}</span>
                 </li>
-                <li><a href="{{ url_for('logout') }}">退出登录</a></li>
+                <li><a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
             </ul>
         </nav>
     </header>
 
     <main>
-        <div class="diagnosis-container">
-            <h2>脑肿瘤辅助诊断</h2>
-            <div class="diagnosis-status">无肿瘤</div>
+        <div class="diagnosis-container card-container">
+            <div class="card-header">
+                <i class="fas fa-stethoscope card-icon"></i>
+                <h2>脑肿瘤辅助诊断</h2>
+                <div class="diagnosis-status {% if result and result.has_tumor %}status-warning{% else %}status-success{% endif %}">
+                    <i class="fas {% if result and result.has_tumor %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}"></i>
+                    {% if result and result.has_tumor %}有肿瘤{% else %}无肿瘤{% endif %}
+                </div>
+            </div>
 
             <div class="diagnosis-content">
-                <div class="image-upload-section">
-                    <div class="upload-preview">
-                        <img id="preview-image" src="{{ url_for('static', filename='images/brain-placeholder.jpg') }}" alt="脑部扫描图像">
-                    </div>
-                    <div class="upload-controls">
-                        <h3>上传脑部CT</h3>
-                        <form action="/upload_diagnosis" method="post" enctype="multipart/form-data">
-                            <div class="file-upload-btn">
-                                <input type="file" name="file" id="file-upload" accept=".jpg,.jpeg,.png" onchange="previewImage(this)">
-                                <label for="file-upload">选择文件</label>
+                <div class="diagnosis-comparison">
+                    <div class="comparison-column">
+                        <div class="comparison-header">
+                            <h3><i class="fas fa-upload"></i> 原始图像</h3>
+                        </div>
+                        <div class="image-upload-section card-section">
+                            <div class="upload-preview">
+                                <img id="preview-image" src="{% if result %}{{ result.original_image }}{% else %}{% endif %}">
+                                <div class="preview-overlay" {% if result %}style="opacity: 0;"{% endif %}>
+                                    <i class="fas fa-brain fa-3x"></i>
+                                </div>
                             </div>
-                            <button type="submit" class="btn-upload">开始上传</button>
-                            <button type="button" class="btn-cancel">清除</button>
-                        </form>
+                            <div class="upload-controls">
+                                <form action="/upload_diagnosis" method="post" enctype="multipart/form-data" id="diagnosis-form">
+                                    <div class="file-upload-btn">
+                                        <input type="file" name="file" id="file-upload" accept=".jpg,.jpeg,.png" onchange="previewImage(this, 'preview-image')">
+                                        <label for="file-upload"><i class="fas fa-file-medical"></i> 选择文件</label>
+                                    </div>
+                                    <div class="action-buttons">
+                                        <button type="submit" class="btn-primary"><i class="fas fa-upload"></i> 开始上传</button>
+                                        <button type="button" class="btn-secondary" id="clear-upload"><i class="fas fa-times"></i> 清除</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="comparison-column">
+                        <div class="comparison-header">
+                            <h3><i class="fas fa-clipboard-check"></i> 诊断结果</h3>
+                        </div>
+                        <div class="diagnosis-result card-section">
+                            {% if result and result.result_image %}
+                            <div class="result-image-container">
+                                <div class="result-image-wrapper">
+                                    <img src="{{ result.result_image }}" class="result-image">
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="empty-result">
+                                <i class="fas fa-image"></i>
+                                <p>上传图像后将显示检测结果</p>
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-
-                <div class="diagnosis-result">
-                    <h3>诊断结果</h3>
+                
+                <div class="diagnosis-details card-section">
+                    <h3><i class="fas fa-chart-bar"></i> 诊断详情</h3>
                     <div class="result-container">
                         <div class="result-item">
-                            <div class="result-label">诊断结果:</div>
-                            <div class="result-value" id="diagnosis-result">{% if result %}{% if result.has_tumor %}有肿瘤{% else %}无肿瘤{% endif %}{% else %}无肿瘤{% endif %}</div>
+                            <div class="result-label"><i class="fas fa-notes-medical"></i> 诊断结果:</div>
+                            <div class="result-value {% if result and result.has_tumor %}text-warning{% else %}text-success{% endif %}" id="diagnosis-result">
+                                {% if result %}
+                                    {% if result.has_tumor %}有肿瘤{% else %}无肿瘤{% endif %}
+                                {% else %}
+                                    无肿瘤
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="result-item">
-                            <div class="result-label">置信度:</div>
-                            <div class="result-value" id="confidence">{% if result %}{{ "%.2f"|format(result.confidence) }}%{% else %}0%{% endif %}</div>
+                            <div class="result-label"><i class="fas fa-percentage"></i> 置信度:</div>
+                            <div class="result-value" id="confidence">
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" id="confidence-fill"></div>
+                                </div>
+                                <span>{% if result %}{{ "%.2f"|format(result.confidence) }}%{% else %}0%{% endif %}</span>
+                            </div>
                         </div>
                         <div class="result-item">
-                            <div class="result-label">建议:</div>
+                            <div class="result-label"><i class="fas fa-comment-medical"></i> 建议:</div>
                             <div class="result-value" id="recommendation">{% if result %}{{ result.recommendation }}{% else %}无需进一步治疗，建议定期复查。{% endif %}</div>
                         </div>
                     </div>
-                    {% if result and result.result_image %}
-                    <div class="result-image-container">
-                        <h4>检测结果图像</h4>
-                        <img src="{{ result.result_image }}" alt="检测结果图像" class="result-image">
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
     <script>
-        function previewImage(input) {
+        document.addEventListener('DOMContentLoaded', function() {
+            // 清除上传图片
+            document.getElementById('clear-upload').addEventListener('click', function() {
+                document.getElementById('file-upload').value = '';
+                document.getElementById('preview-image').src = "";
+                document.querySelector('.preview-overlay').style.opacity = '1';
+                
+                // 清除诊断结果区域，恢复为空状态
+                const diagnosisResult = document.querySelector('.diagnosis-result');
+                if (diagnosisResult) {
+                    diagnosisResult.innerHTML = `
+                        <div class="empty-result">
+                            <i class="fas fa-image"></i>
+                            <p>上传图像后将显示检测结果</p>
+                        </div>
+                    `;
+                }
+                
+                // 重置诊断详情
+                document.getElementById('diagnosis-result').textContent = '无肿瘤';
+                document.getElementById('diagnosis-result').className = 'result-value text-success';
+                document.getElementById('confidence-fill').style.width = '0%';
+                document.getElementById('confidence-fill').className = 'confidence-fill';
+                document.querySelector('#confidence span').textContent = '0%';
+                document.getElementById('recommendation').textContent = '无需进一步治疗，建议定期复查。';
+                
+                // 重置状态指示器
+                const statusIndicator = document.querySelector('.diagnosis-status');
+                statusIndicator.className = 'diagnosis-status status-success';
+                statusIndicator.innerHTML = '<i class="fas fa-check-circle"></i> 无肿瘤';
+            });
+            
+            // 图片预览时隐藏覆盖层
+            const previewImage = document.getElementById('preview-image');
+            const previewOverlay = document.querySelector('.preview-overlay');
+            
+            previewImage.addEventListener('load', function() {
+                if (this.src) {
+                    previewOverlay.style.opacity = '0';
+                } else {
+                    previewOverlay.style.opacity = '1';
+                }
+            });
+            
+            // 添加卡片动画效果
+            const cardSections = document.querySelectorAll('.card-section');
+            cardSections.forEach(section => {
+                section.classList.add('fade-in');
+            });
+            
+            // 表单提交时显示加载动画
+            const diagnosisForm = document.getElementById('diagnosis-form');
+            if (diagnosisForm) {
+                diagnosisForm.addEventListener('submit', function(e) {
+                    const fileInput = document.getElementById('file-upload');
+                    if (!fileInput.files || fileInput.files.length === 0) {
+                        e.preventDefault();
+                        alert('请先选择一个文件');
+                        return false;
+                    }
+                    
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+                    submitBtn.disabled = true;
+                });
+            }
+            
+            // 设置置信度条的宽度和颜色
+            const confidenceFill = document.getElementById('confidence-fill');
+            if (confidenceFill) {
+                {% if result %}
+                const confidence = {{ result.confidence }};
+                confidenceFill.style.width = confidence + '%';
+                
+                // 根据置信度值设置不同的颜色类
+                if (confidence < 30) {
+                    confidenceFill.classList.add('confidence-fill-low');
+                } else if (confidence < 70) {
+                    confidenceFill.classList.add('confidence-fill-medium');
+                } else {
+                    confidenceFill.classList.add('confidence-fill-high');
+                }
+                {% else %}
+                confidenceFill.style.width = '0%';
+                {% endif %}
+            }
+        });
+        
+        // 图像预览功能
+        function previewImage(input, previewId) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
                 
                 reader.onload = function(e) {
-                    document.getElementById('preview-image').src = e.target.result;
+                    document.getElementById(previewId).src = e.target.result;
                 }
                 
                 reader.readAsDataURL(input.files[0]);
             }
         }
-
-        document.querySelector('.btn-cancel').addEventListener('click', function() {
-            document.getElementById('file-upload').value = '';
-            document.getElementById('preview-image').src = "{{ url_for('static', filename='images/brain-placeholder.jpg') }}";
-        });
     </script>
 </body>
 </html>
