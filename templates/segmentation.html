@@ -28,10 +28,19 @@
                 <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
                 <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
                 <li class="user-profile">
-                    <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                    <img src="{{ url_for('get_avatar', filename=session.get('avatar', 'default-avatar.png')) }}" alt="用户头像" class="user-avatar">
                     <span class="user-name">{{ session.get('username', '用户') }}</span>
+                    <div class="user-dropdown">
+                        <a href="{{ url_for('profile') }}" class="user-dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>个人资料</span>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="user-dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>退出登录</span>
+                        </a>
+                    </div>
                 </li>
-                <li><a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
             </ul>
         </nav>
     </header>

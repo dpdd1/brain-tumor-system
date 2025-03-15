@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑肿瘤医学诊断平台 - 个人资料</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="inner-page">
+    <!-- 页面背景效果 -->
+    <div class="page-background">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+        <div class="particles-container" id="particles-js"></div>
+    </div>
+
+    <header>
+        <div class="logo">
+            <i class="fas fa-brain logo-icon"></i>
+            <span class="logo-title">脑肿瘤医学诊断平台</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('diagnosis') }}"><i class="fas fa-stethoscope"></i> 肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
+                <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
+                <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
+                <li class="user-profile active">
+                    <img src="{{ url_for('get_avatar', filename=session.get('avatar', 'default-avatar.png')) }}" alt="用户头像" class="user-avatar">
+                    <span class="user-name">{{ session.get('username', '用户') }}</span>
+                    <div class="user-dropdown">
+                        <a href="{{ url_for('profile') }}" class="user-dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>个人资料</span>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="user-dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>退出登录</span>
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="profile-container">
+            <div class="profile-header">
+                <div class="profile-avatar">
+                    <img src="{{ url_for('get_avatar', filename=user.avatar) }}" alt="用户头像" id="current-avatar">
+                    <label for="avatar-upload" class="profile-avatar-edit">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                </div>
+                <h1 class="profile-name">{{ user.username }}</h1>
+                <p class="profile-bio">{{ user.bio }}</p>
+            </div>
+            
+            <div class="profile-content">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="alert alert-success">
+                            {{ messages[0] }}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="profile-section">
+                    <h2 class="profile-section-title"><i class="fas fa-user-edit"></i> 编辑个人资料</h2>
+                    <form class="profile-form" action="{{ url_for('update_profile') }}" method="POST" enctype="multipart/form-data">
+                        <input type="file" id="avatar-upload" name="avatar" accept="image/png, image/jpeg, image/jpg" style="display: none;" onchange="previewAvatar(this)">
+                        
+                        <div class="profile-form-group">
+                            <label for="bio"><i class="fas fa-quote-left"></i> 个性签名</label>
+                            <textarea id="bio" name="bio" placeholder="写点什么介绍自己吧...">{{ user.bio }}</textarea>
+                        </div>
+                        
+                        <button type="submit" class="profile-submit-btn">
+                            <i class="fas fa-save"></i> 保存修改
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
+    <script>
+        // 头像预览功能
+        function previewAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('current-avatar').src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        // 初始化粒子效果
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof particlesJS !== 'undefined') {
+                particlesJS('particles-js', particlesConfig);
+            }
+        });
+    </script>
+</body>
+</html> 

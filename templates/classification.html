@@ -6,6 +6,457 @@
     <title>脑肿瘤医学诊断平台 - 脑部检测</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 快速分析按钮样式 - 修改为与其他按钮一致的颜色 */
+        .model-btn[data-model="quick"] {
+            background-color: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .model-btn[data-model="quick"]:hover, 
+        .model-btn[data-model="quick"].active {
+            background-color: #007bff;
+            color: white;
+            border-color: #0069d9;
+        }
+        
+        .model-btn[data-model="quick"] i {
+            color: #ff9800;
+        }
+        
+        /* 快速分析结果样式 */
+        .medical-analysis {
+            white-space: pre-line;
+            line-height: 1.6;
+        }
+        
+        /* 结果图像样式 */
+        .result-image-container {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-image {
+            max-width: 100%;
+            max-height: 350px;
+            object-fit: contain;
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        .result-image:hover {
+            transform: scale(1.02);
+        }
+        
+        /* 新的上传控件样式 */
+        .upload-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: stretch;
+        }
+        
+        .file-upload-btn, .btn-primary {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .file-upload-btn input[type="file"] {
+            position: absolute;
+            width: 0;
+            height: 0;
+            padding: 0;
+            overflow: hidden;
+            border: 0;
+            opacity: 0;
+        }
+        
+        .file-upload-btn label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            color: #007bff;
+            border: 1px solid #e0e0e0;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            width: 100%;
+            height: 45px;
+            box-sizing: border-box;
+        }
+        
+        .file-upload-btn label:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .file-upload-btn label i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px;
+            box-sizing: border-box;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background-color: #0069d9;
+        }
+        
+        .btn-primary:disabled {
+            background-color: #6c757d;
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary i {
+            margin-right: 8px;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 576px) {
+            .upload-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        
+        /* 拖放区域样式 */
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            background-color: #f8f9fa;
+        }
+        
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #007bff;
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        .drop-zone i {
+            font-size: 2.5rem;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .drop-zone p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 1rem;
+        }
+        
+        /* 结果项样式 */
+        .result-item {
+            padding: 15px;
+            margin-bottom: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            border-left: 4px solid transparent;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 确保进度条容器是块级元素 */
+        .result-item .progress-bar-container {
+            display: block;
+            width: 100%;
+        }
+        
+        .result-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .result-item.malignant {
+            border-left-color: #dc3545;
+        }
+        
+        .result-item.benign {
+            border-left-color: #28a745;
+        }
+        
+        /* 进度条样式 */
+        .progress-bar-container {
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+            width: 100%;
+            display: block;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+            position: relative;
+        }
+        
+        .progress-bar.benign {
+            background: linear-gradient(to right, #28a745, #20c997); /* 良性-绿色渐变 */
+        }
+        
+        .progress-bar.malignant {
+            background: linear-gradient(to right, #dc3545, #e74c3c); /* 恶性-红色渐变 */
+        }
+        
+        /* 确保进度条在结果项中正确显示 */
+        .result-item {
+            padding: 15px;
+            margin-bottom: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            border-left: 4px solid transparent;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 确保进度条容器是块级元素 */
+        .result-item .progress-bar-container {
+            display: block;
+            width: 100%;
+        }
+        
+        /* 添加进度条动画 */
+        @keyframes progressAnimation {
+            0% { width: 0%; }
+        }
+        
+        .progress-bar {
+            animation: progressAnimation 1.5s ease-out;
+        }
+        
+        /* 坐标显示样式 */
+        .coordinates {
+            font-family: monospace;
+            color: #007bff;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            background-color: rgba(0, 123, 255, 0.05);
+            padding: 5px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .coordinates .arrow {
+            color: #6c757d;
+            margin: 0 5px;
+        }
+        
+        /* 结果标题样式 */
+        .result-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        /* 结果区块样式 */
+        .result-section {
+            margin-bottom: 25px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 模型信息样式 */
+        .model-info {
+            background-color: #f0f7ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+        
+        .model-info i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        
+        .model-info strong {
+            color: #0056b3;
+        }
+        
+        /* 阈值调节面板样式 */
+        .threshold-panel {
+            background-color: #f0f7ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        
+        .threshold-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        
+        .threshold-header h4 {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #0056b3;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .threshold-header h4 i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        
+        .threshold-badge {
+            background-color: rgba(0, 123, 255, 0.1);
+            border-radius: 20px;
+            padding: 3px 10px;
+            margin: 0 5px;
+            font-weight: 500;
+            color: #007bff;
+        }
+        
+        .threshold-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0, 123, 255, 0.1);
+            margin-top: 10px;
+        }
+        
+        .threshold-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .threshold-item label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        
+        .threshold-slider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .threshold-slider input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #e9ecef;
+            outline: none;
+            border-radius: 3px;
+        }
+        
+        .threshold-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .threshold-slider input[type="range"]::-webkit-slider-thumb:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+        
+        .threshold-value {
+            min-width: 40px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #007bff;
+            background-color: rgba(0, 123, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .threshold-apply {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 10px;
+        }
+        
+        .threshold-apply:hover {
+            background-color: #0056b3;
+        }
+        
+        .threshold-toggle {
+            font-size: 0.8rem;
+            color: #6c757d;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .threshold-toggle:hover {
+            color: #007bff;
+        }
+        
+        /* 阈值信息显示 */
+        .threshold-info {
+            display: none; /* 不再需要单独的阈值信息显示 */
+        }
+    </style>
 </head>
 <body class="inner-page">
     <!-- 页面背景效果 -->
@@ -28,10 +479,19 @@
                 <li class="active"><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
                 <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
                 <li class="user-profile">
-                    <img src="{{ url_for('static', filename='images/user-avatar.png') }}" alt="用户头像">
+                    <img src="{{ url_for('get_avatar', filename=session.get('avatar', 'default-avatar.png')) }}" alt="用户头像" class="user-avatar">
                     <span class="user-name">{{ session.get('username', '用户') }}</span>
+                    <div class="user-dropdown">
+                        <a href="{{ url_for('profile') }}" class="user-dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>个人资料</span>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="user-dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>退出登录</span>
+                        </a>
+                    </div>
                 </li>
-                <li><a href="{{ url_for('logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
             </ul>
         </nav>
     </header>
@@ -50,6 +510,9 @@
                 <button class="model-btn" data-model="qwen">
                     <i class="fas fa-microchip"></i> 通义千问 医学分析
                 </button>
+                <button class="model-btn" data-model="quick">
+                    <i class="fas fa-bolt"></i> 快速分析
+                </button>
             </div>
 
             <div class="loading-overlay" id="loading">
@@ -59,11 +522,13 @@
             <div class="analysis-content">
                 <div class="upload-section card-section">
                     <h3><i class="fas fa-upload"></i> 上传脑部CT</h3>
-                    <div class="file-upload-btn">
-                        <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" onchange="previewImage(this, 'preview')">
-                        <label for="fileInput"><i class="fas fa-file-medical"></i> 选择文件</label>
+                    <div class="upload-controls">
+                        <div class="file-upload-btn">
+                            <input type="file" id="fileInput" accept="image/png, image/jpeg, image/jpg" onchange="previewImage(this, 'preview')">
+                            <label for="fileInput"><i class="fas fa-file-medical"></i> 选择文件</label>
+                        </div>
+                        <button class="btn-primary" id="detectBtn" disabled><i class="fas fa-search"></i> 开始检测</button>
                     </div>
-                    <button class="btn-primary" id="detectBtn" disabled><i class="fas fa-search"></i> 开始检测</button>
                     
                     <div class="drop-zone" id="dropZone">
                         <i class="fas fa-cloud-upload-alt"></i>
@@ -107,6 +572,9 @@
         // 状态变量
         let currentModel = 'deepseek';
         let selectedFile = null;
+        let lastResultData = null; // 存储最后一次的检测结果
+        let classificationThreshold = 50; // 分类阈值，默认50%
+        let detectionThreshold = 50; // 检测阈值，默认50%
 
         // 模型切换
         document.querySelectorAll('.model-btn').forEach(btn => {
@@ -191,22 +659,123 @@
                 showResults(data);
 
             } catch (error) {
-                alert(`检测失败: ${error.message}`);
+                console.error('检测过程中出错:', error);
+                showError(error.message);
             } finally {
                 loadingOverlay.style.display = 'none';
             }
         });
 
+        // 显示错误信息
+        function showError(message) {
+            resultsContainer.innerHTML = `
+                <h3><i class="fas fa-exclamation-triangle"></i> 检测失败</h3>
+                <div class="error-message">
+                    <p>${message}</p>
+                    <p>请尝试以下解决方案:</p>
+                    <ul>
+                        <li>确保上传的是有效的脑部CT图像</li>
+                        <li>尝试使用其他分析模型</li>
+                        <li>检查网络连接是否正常</li>
+                        <li>刷新页面后重试</li>
+                    </ul>
+                </div>
+            `;
+            
+            // 添加错误样式
+            const style = document.createElement('style');
+            style.textContent = `
+                .error-message {
+                    background-color: #fff8f8;
+                    border-left: 4px solid #ff6b6b;
+                    padding: 15px;
+                    margin: 15px 0;
+                    border-radius: 4px;
+                }
+                .error-message p {
+                    margin: 5px 0;
+                    color: #e74c3c;
+                }
+                .error-message ul {
+                    margin: 10px 0;
+                    padding-left: 20px;
+                }
+                .error-message li {
+                    margin: 5px 0;
+                    color: #555;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
         // 结果显示函数
         function showResults(data) {
+            // 调试输出
+            console.log('接收到的检测数据:', data);
+            
+            // 保存结果数据，以便后续阈值调整时使用
+            lastResultData = data;
+            
+            // 确保数据格式正确
+            const malignancy = Array.isArray(data.malignancy) ? data.malignancy : 
+                               (data.malignancy ? [data.malignancy] : []);
+            
+            const detections = Array.isArray(data.detections) ? data.detections : 
+                              (data.detections ? [data.detections] : []);
+            
+            const classifications = Array.isArray(data.classifications) ? data.classifications : 
+                                   (data.classifications ? [data.classifications] : []);
+            
+            // 应用阈值过滤
+            const filteredMalignancy = filterByThreshold(malignancy, detectionThreshold, true);
+            const filteredDetections = filterByThreshold(detections, detectionThreshold);
+            const filteredClassifications = filterByThreshold(classifications, classificationThreshold);
+            
             const resultHTML = `
                 <h3><i class="fas fa-chart-bar"></i> 分析结果</h3>
                 <div class="model-info">
-                    <i class="fas fa-robot"></i> 分析模型：<strong>${currentModel === 'deepseek' ? 'DeepSeek' : '通义千问'}</strong>
+                    <i class="${currentModel === 'deepseek' ? 'fas fa-robot' : currentModel === 'qwen' ? 'fas fa-microchip' : 'fas fa-bolt'}"></i> 分析模型：<strong>${currentModel === 'deepseek' ? 'DeepSeek' : currentModel === 'qwen' ? '通义千问' : '快速分析'}</strong>
                 </div>
-                ${createSection('📊 良恶性分析', data.malignancy, true)}
-                ${createSection('🔍 肿瘤检测结果', data.detections)}
-                ${createSection('📈 类型概率分布', data.classifications)}
+                
+                <div class="threshold-panel">
+                    <div class="threshold-header" id="thresholdToggle">
+                        <h4>
+                            <i class="fas fa-filter"></i> 阈值过滤：
+                            分类阈值 <span class="threshold-badge">${classificationThreshold}%</span> 
+                            检测阈值 <span class="threshold-badge">${detectionThreshold}%</span>
+                        </h4>
+                        <span class="threshold-toggle"><i class="fas fa-chevron-down"></i></span>
+                    </div>
+                    <div class="threshold-content" id="thresholdContent" style="display: none;">
+                        <div class="threshold-item">
+                            <label>分类阈值 (显示置信度大于该值的结果)</label>
+                            <div class="threshold-slider">
+                                <input type="range" id="classThreshold" min="0" max="100" value="${classificationThreshold}" step="1">
+                                <span class="threshold-value" id="classThresholdValue">${classificationThreshold}%</span>
+                            </div>
+                        </div>
+                        <div class="threshold-item">
+                            <label>检测阈值 (显示置信度大于该值的结果)</label>
+                            <div class="threshold-slider">
+                                <input type="range" id="detectThreshold" min="0" max="100" value="${detectionThreshold}" step="1">
+                                <span class="threshold-value" id="detectThresholdValue">${detectionThreshold}%</span>
+                            </div>
+                        </div>
+                        <button class="threshold-apply" id="applyThreshold">应用阈值</button>
+                    </div>
+                </div>
+                
+                ${data.result_image ? `
+                <div class="result-section">
+                    <div class="result-header">🖼️ 检测结果图像</div>
+                    <div class="result-image-container">
+                        <img src="/static/uploads/${data.result_image}" class="result-image" alt="检测结果图像">
+                    </div>
+                </div>
+                ` : ''}
+                ${createSection('📊 良恶性分析', filteredMalignancy, true)}
+                ${createSection('🔍 肿瘤检测结果', filteredDetections)}
+                ${createSection('📈 类型概率分布', filteredClassifications)}
                 ${createAnalysis(data.medical_analysis)}
             `;
 
@@ -219,68 +788,382 @@
                     section.classList.add('fade-in');
                 }, index * 100);
             });
+            
+            // 设置阈值调节面板的交互
+            setupThresholdControls();
+        }
+        
+        // 根据阈值过滤结果
+        function filterByThreshold(items, threshold, isMalignancy = false) {
+            if (!items || !items.length) return [];
+            
+            // 调试输出
+            console.log(`过滤${isMalignancy ? '良恶性分析' : '普通'}数据，阈值: ${threshold}%`, items);
+            
+            return items.filter(item => {
+                let passed = false;
+                let extractedValue = null;
+                
+                // 如果是良恶性分析，特殊处理
+                if (isMalignancy) {
+                    // 从字符串中提取百分比
+                    if (typeof item === 'string') {
+                        // 先尝试匹配带百分号的数字
+                        let percentMatch = item.match(/(\d+)(?=%|％|percent|百分比)/i);
+                        // 如果没找到，尝试匹配任何数字
+                        if (!percentMatch) percentMatch = item.match(/(\d+)/i);
+                        
+                        if (percentMatch && percentMatch[1]) {
+                            extractedValue = parseInt(percentMatch[1]);
+                            passed = extractedValue >= threshold;
+                            console.log(`从字符串 "${item}" 提取到百分比: ${extractedValue}%, 通过过滤: ${passed}`);
+                        } else {
+                            // 如果无法提取数字，默认显示
+                            passed = true;
+                            console.log(`无法从字符串 "${item}" 提取百分比，默认显示`);
+                        }
+                    } 
+                    // 从对象中提取百分比
+                    else if (typeof item === 'object' && item !== null) {
+                        if (item.probability !== undefined) {
+                            extractedValue = parseFloat(item.probability) * 100;
+                            passed = extractedValue >= threshold;
+                            console.log(`从对象提取到probability: ${extractedValue}%, 通过过滤: ${passed}`);
+                        }
+                        else if (item.confidence !== undefined) {
+                            extractedValue = parseFloat(item.confidence) * 100;
+                            passed = extractedValue >= threshold;
+                            console.log(`从对象提取到confidence: ${extractedValue}%, 通过过滤: ${passed}`);
+                        }
+                        else if (item.score !== undefined) {
+                            extractedValue = parseFloat(item.score) * 100;
+                            passed = extractedValue >= threshold;
+                            console.log(`从对象提取到score: ${extractedValue}%, 通过过滤: ${passed}`);
+                        }
+                        // 尝试从文本属性中提取
+                        else if (item.text || item.label || item.name) {
+                            const text = item.text || item.label || item.name;
+                            // 先尝试匹配带百分号的数字
+                            let percentMatch = text.match(/(\d+)(?=%|％|percent|百分比)/i);
+                            // 如果没找到，尝试匹配任何数字
+                            if (!percentMatch) percentMatch = text.match(/(\d+)/i);
+                            
+                            if (percentMatch && percentMatch[1]) {
+                                extractedValue = parseInt(percentMatch[1]);
+                                passed = extractedValue >= threshold;
+                                console.log(`从对象文本 "${text}" 提取到百分比: ${extractedValue}%, 通过过滤: ${passed}`);
+                            } else {
+                                // 如果无法提取数字，默认显示
+                                passed = true;
+                                console.log(`无法从对象文本 "${text}" 提取百分比，默认显示`);
+                            }
+                        } else {
+                            // 如果无法提取数字，默认显示
+                            passed = true;
+                            console.log(`无法从对象提取百分比，默认显示`, item);
+                        }
+                    } else {
+                        // 其他类型，默认显示
+                        passed = true;
+                        console.log(`未知类型数据，默认显示`, item);
+                    }
+                    
+                    return passed;
+                }
+                
+                // 常规项目处理
+                // 如果是对象，尝试提取概率值
+                if (typeof item === 'object' && item !== null) {
+                    // 提取概率值
+                    if (item.probability !== undefined) {
+                        extractedValue = parseFloat(item.probability) * 100;
+                        passed = extractedValue >= threshold;
+                        console.log(`从对象提取到probability: ${extractedValue}%, 通过过滤: ${passed}`);
+                    }
+                    else if (item.confidence !== undefined) {
+                        extractedValue = parseFloat(item.confidence) * 100;
+                        passed = extractedValue >= threshold;
+                        console.log(`从对象提取到confidence: ${extractedValue}%, 通过过滤: ${passed}`);
+                    }
+                    else if (item.score !== undefined) {
+                        extractedValue = parseFloat(item.score) * 100;
+                        passed = extractedValue >= threshold;
+                        console.log(`从对象提取到score: ${extractedValue}%, 通过过滤: ${passed}`);
+                    }
+                    // 如果没有直接的概率值，尝试从文本中提取
+                    else if (item.text || item.label || item.name) {
+                        const text = item.text || item.label || item.name;
+                        // 先尝试匹配带百分号的数字
+                        let percentMatch = text.match(/(\d+)(?=%|％|percent|百分比)/i);
+                        // 如果没找到，尝试匹配任何数字
+                        if (!percentMatch) percentMatch = text.match(/(\d+)/i);
+                        
+                        if (percentMatch && percentMatch[1]) {
+                            extractedValue = parseInt(percentMatch[1]);
+                            passed = extractedValue >= threshold;
+                            console.log(`从对象文本 "${text}" 提取到百分比: ${extractedValue}%, 通过过滤: ${passed}`);
+                        } else {
+                            // 如果无法提取数字，默认显示
+                            passed = true;
+                            console.log(`无法从对象文本 "${text}" 提取百分比，默认显示`);
+                        }
+                    } else {
+                        // 如果无法提取数字，默认显示
+                        passed = true;
+                        console.log(`无法从对象提取百分比，默认显示`, item);
+                    }
+                }
+                // 如果是字符串，尝试从中提取百分比
+                else if (typeof item === 'string') {
+                    // 先尝试匹配带百分号的数字
+                    let percentMatch = item.match(/(\d+)(?=%|％|percent|百分比)/i);
+                    // 如果没找到，尝试匹配任何数字
+                    if (!percentMatch) percentMatch = item.match(/(\d+)/i);
+                    
+                    if (percentMatch && percentMatch[1]) {
+                        extractedValue = parseInt(percentMatch[1]);
+                        passed = extractedValue >= threshold;
+                        console.log(`从字符串 "${item}" 提取到百分比: ${extractedValue}%, 通过过滤: ${passed}`);
+                    } else {
+                        // 如果无法提取数字，默认显示
+                        passed = true;
+                        console.log(`无法从字符串 "${item}" 提取百分比，默认显示`);
+                    }
+                } else {
+                    // 其他类型，默认显示
+                    passed = true;
+                    console.log(`未知类型数据，默认显示`, item);
+                }
+                
+                return passed;
+            });
+        }
+        
+        // 设置阈值调节面板的交互
+        function setupThresholdControls() {
+            const thresholdToggle = document.getElementById('thresholdToggle');
+            const thresholdContent = document.getElementById('thresholdContent');
+            const classThreshold = document.getElementById('classThreshold');
+            const detectThreshold = document.getElementById('detectThreshold');
+            const classThresholdValue = document.getElementById('classThresholdValue');
+            const detectThresholdValue = document.getElementById('detectThresholdValue');
+            const applyThreshold = document.getElementById('applyThreshold');
+            
+            // 切换阈值面板显示/隐藏
+            thresholdToggle.addEventListener('click', () => {
+                const isVisible = thresholdContent.style.display !== 'none';
+                thresholdContent.style.display = isVisible ? 'none' : 'block';
+                thresholdToggle.querySelector('i').className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+            });
+            
+            // 更新分类阈值显示
+            classThreshold.addEventListener('input', () => {
+                classThresholdValue.textContent = `${classThreshold.value}%`;
+            });
+            
+            // 更新检测阈值显示
+            detectThreshold.addEventListener('input', () => {
+                detectThresholdValue.textContent = `${detectThreshold.value}%`;
+            });
+            
+            // 应用阈值按钮
+            applyThreshold.addEventListener('click', () => {
+                classificationThreshold = parseInt(classThreshold.value);
+                detectionThreshold = parseInt(detectThreshold.value);
+                
+                // 如果有结果数据，重新应用阈值并显示
+                if (lastResultData) {
+                    showResults(lastResultData);
+                }
+            });
         }
 
         // 辅助函数：创建结果区块
         function createSection(title, items, isMalignancy = false) {
             if (!items?.length) return '';
+            
+            // 处理对象数组的情况
+            const processedItems = items.map(item => {
+                let itemContent = '';
+                let progressBar = '';
+                let coordinates = '';
+                let percentage = null;
+                
+                // 处理不同类型的输入
+                if (typeof item === 'string') {
+                    itemContent = item;
+                    
+                    // 如果是字符串，尝试提取百分比
+                    const percentMatch = item.match(/(\d+)(?=%|％|percent|百分比)?/i);
+                    if (percentMatch && percentMatch[1]) {
+                        percentage = parseInt(percentMatch[1]) / 100;
+                    }
+                } else if (typeof item === 'object' && item !== null) {
+                    // 提取坐标信息（如果存在）
+                    if (item.coordinates || (item.from && item.to)) {
+                        const from = item.from || item.coordinates?.from || item.coordinates;
+                        const to = item.to || item.coordinates?.to;
+                        
+                        if (from) {
+                            coordinates = `<div class="coordinates">`;
+                            if (Array.isArray(from) && from.length >= 2) {
+                                coordinates += `(${from.join(', ')})`;
+                            } else if (typeof from === 'string') {
+                                coordinates += from;
+                            }
+                            
+                            if (to) {
+                                coordinates += ` <span class="arrow">→</span> `;
+                                if (Array.isArray(to) && to.length >= 2) {
+                                    coordinates += `(${to.join(', ')})`;
+                                } else if (typeof to === 'string') {
+                                    coordinates += to;
+                                }
+                            }
+                            
+                            coordinates += `</div>`;
+                        }
+                    }
+                    
+                    // 提取主要文本内容
+                    if (item.text || item.label || item.name) {
+                        itemContent = item.text || item.label || item.name;
+                    } else if (item.probability !== undefined || item.confidence !== undefined || item.score !== undefined) {
+                        const value = item.probability || item.confidence || item.score;
+                        percentage = parseFloat(value);
+                        const percentageText = (percentage * 100).toFixed(0) + '%';
+                        const className = item.class || item.type || item.category || '类型';
+                        itemContent = `${className} ${percentageText}`;
+                    } else {
+                        // 尝试格式化对象为可读形式
+                        try {
+                            const entries = Object.entries(item);
+                            if (entries.length > 0) {
+                                itemContent = entries.map(([key, value]) => {
+                                    if (typeof value === 'number' && value <= 1 && value >= 0) {
+                                        if (key.toLowerCase().includes('prob') || 
+                                            key.toLowerCase().includes('conf') || 
+                                            key.toLowerCase().includes('score')) {
+                                            percentage = value;
+                                        }
+                                        return `${key}: ${(value * 100).toFixed(0)}%`;
+                                    }
+                                    return `${key}: ${value}`;
+                                }).join(', ');
+                            }
+                        } catch (e) {
+                            console.error('格式化对象时出错:', e);
+                            itemContent = JSON.stringify(item, null, 2);
+                        }
+                    }
+                } else {
+                    // 如果不是对象或字符串，转换为字符串
+                    itemContent = String(item);
+                }
+                
+                // 添加进度条 - 多种方法尝试提取百分比
+                
+                // 方法1: 从对象属性中提取
+                if (percentage === null && typeof item === 'object' && item !== null) {
+                    if (item.probability !== undefined) percentage = parseFloat(item.probability);
+                    else if (item.confidence !== undefined) percentage = parseFloat(item.confidence);
+                    else if (item.score !== undefined) percentage = parseFloat(item.score);
+                }
+                
+                // 方法2: 从文本中提取百分比
+                if (percentage === null && typeof itemContent === 'string') {
+                    const percentMatch = itemContent.match(/(\d+)(?=%|％|percent|百分比)?/i);
+                    if (percentMatch && percentMatch[1]) {
+                        percentage = parseInt(percentMatch[1]) / 100;
+                    }
+                }
+                
+                // 方法3: 如果有百分比，创建进度条
+                if (percentage !== null) {
+                    const isBenign = itemContent.includes('良性');
+                    const isNormal = itemContent.includes('正常') || itemContent.includes('无');
+                    const barColor = isBenign || isNormal ? 'benign' : 'malignant';
+                    
+                    progressBar = `
+                        <div class="progress-bar-container">
+                            <div class="progress-bar ${barColor}" 
+                                 style="width: ${(percentage * 100).toFixed(0)}%"></div>
+                        </div>
+                    `;
+                }
+                
+                // 方法4: 如果是良恶性分析，强制添加进度条
+                if (!progressBar && isMalignancy) {
+                    // 从内容中提取数字
+                    const numMatch = itemContent.match(/(\d+)/);
+                    let percent = numMatch ? parseInt(numMatch[1]) : 50; // 默认50%
+                    
+                    // 如果数字大于100，可能不是百分比，使用默认值
+                    if (percent > 100) percent = 50;
+                    
+                    const isBenign = itemContent.includes('良性');
+                    const barColor = isBenign ? 'benign' : 'malignant';
+                    
+                    progressBar = `
+                        <div class="progress-bar-container">
+                            <div class="progress-bar ${barColor}" 
+                                 style="width: ${percent}%"></div>
+                        </div>
+                    `;
+                }
+                
+                // 方法5: 如果是肿瘤检测结果，也强制添加进度条
+                if (!progressBar && title.includes('肿瘤检测')) {
+                    // 从内容中提取数字
+                    const numMatch = itemContent.match(/(\d+)/);
+                    let percent = numMatch ? parseInt(numMatch[1]) : 70; // 默认70%
+                    
+                    // 如果数字大于100，可能不是百分比，使用默认值
+                    if (percent > 100) percent = 70;
+                    
+                    const isNormal = itemContent.includes('无') || itemContent.includes('正常');
+                    const barColor = isNormal ? 'benign' : 'malignant';
+                    
+                    progressBar = `
+                        <div class="progress-bar-container">
+                            <div class="progress-bar ${barColor}" 
+                                 style="width: ${percent}%"></div>
+                        </div>
+                    `;
+                }
+                
+                // 设置项目类
+                const itemClass = isMalignancy ? 
+                    (itemContent.includes('良性') ? 'benign' : 'malignant') : 
+                    (itemContent.includes('良性') || itemContent.includes('正常') || itemContent.includes('无') ? 'benign' : '');
+                
+                return { itemContent, progressBar, coordinates, itemClass };
+            });
+            
             return `
                 <div class="result-section">
                     <div class="result-header">${title}</div>
-                    ${items.map(item => `
-                        <div class="result-item ${isMalignancy ? `malignancy ${item.class}` : ''}">
-                            <div class="result-header-line">
-                                <span>${item.class}</span>
-                                <strong>${isMalignancy ? item.display_prob : item.display_conf}</strong>
-                            </div>
-                            ${isMalignancy ? `
-                            <div class="confidence-bar">
-                                <div class="confidence-progress"
-                                     style="width: ${item.probability * 100}%;
-                                            background: ${item.class === '良性' ? '#4CAF50' : '#f44336'}">
-                                </div>
-                            </div>
-                            <div class="malignancy-tip">${getMalignancyTip(item.class)}</div>
-                            ` : ''}
-                            ${item.position ? `
-                            <div class="position-info">
-                                <span>坐标：(${item.position.x1}, ${item.position.y1}) → (${item.position.x2}, ${item.position.y2})</span>
-                            </div>
-                            ` : ''}
+                    ${processedItems.map(item => `
+                        <div class="result-item ${item.itemClass}">
+                            ${item.itemContent}
+                            ${item.coordinates}
+                            ${item.progressBar}
                         </div>
                     `).join('')}
                 </div>
             `;
         }
 
-        // 辅助函数：创建医学分析
-        function createAnalysis(content) {
-            if (!content) return '';
+        // 辅助函数：创建医学分析结果
+        function createAnalysis(analysis) {
+            if (!analysis) return '';
             return `
                 <div class="result-section">
-                    <div class="result-header">📝 医学分析建议</div>
-                    <div class="medical-analysis">${content}</div>
+                    <div class="result-header">📋 医学分析报告</div>
+                    <div class="medical-analysis">${analysis}</div>
                 </div>
             `;
         }
-
-        // 辅助函数：获取良恶性提示
-        function getMalignancyTip(type) {
-            return {
-                '良性': '建议每6个月复查MRI，观察肿瘤大小变化',
-                '恶性': '建议立即联系神经外科医生进行进一步诊断'
-            }[type] || '请咨询专业医生获取详细建议';
-        }
-        
-        // 添加卡片动画效果
-        document.addEventListener('DOMContentLoaded', function() {
-            const cardSections = document.querySelectorAll('.card-section');
-            cardSections.forEach((section, index) => {
-                setTimeout(() => {
-                    section.classList.add('fade-in');
-                }, index * 100);
-            });
-        });
     </script>
 </body>
 </html>

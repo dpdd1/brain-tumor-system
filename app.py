@@ -7,7 +7,7 @@ from datetime import datetime
 import cv2
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 import io
 import base64
@@ -23,14 +23,44 @@ app.secret_key = 'your-secret-key-here'  # 用于session加密
 # 配置上传文件存储路径
 UPLOAD_FOLDER = 'static/uploads'
 RESULTS_FOLDER = 'static/results'
+AVATARS_FOLDER = 'static/avatars'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['RESULTS_FOLDER'] = RESULTS_FOLDER
+app.config['AVATARS_FOLDER'] = AVATARS_FOLDER
 
 # 确保上传和结果目录存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RESULTS_FOLDER, exist_ok=True)
+os.makedirs(AVATARS_FOLDER, exist_ok=True)
+
+# 确保默认头像文件存在
+default_avatar_path = os.path.join(AVATARS_FOLDER, 'default-avatar.png')
+if not os.path.exists(default_avatar_path):
+    try:
+        # 尝试下载或复制一个简单的默认头像图片
+        # 可以使用一个基本图片库创建简单头像
+        from PIL import Image, ImageDraw
+        
+        # 创建一个100x100的蓝色圆形头像
+        img = Image.new('RGBA', (100, 100), (255, 255, 255, 0))
+        draw = ImageDraw.Draw(img)
+        draw.ellipse((0, 0, 99, 99), fill=(65, 105, 225, 255))
+        
+        # 保存到文件
+        img.save(default_avatar_path, 'PNG')
+        print(f"创建默认头像文件: {default_avatar_path}")
+    except Exception as e:
+        print(f"创建默认头像文件失败: {str(e)}")
+        # 创建一个回退方案，至少确保文件存在
+        try:
+            # 创建一个简单的空头像文件
+            with open(default_avatar_path, 'wb') as f:
+                f.write(b'')  # 写入空字节
+            print(f"创建空默认头像文件: {default_avatar_path}")
+        except Exception as e2:
+            print(f"创建空默认头像文件也失败: {str(e2)}")
 
 # 加载YOLOv11模型
 detection_model = None
@@ -41,6 +71,50 @@ classification_model = None
 SPARK_APP_ID = 'b1968706'
 SPARK_API_KEY = 'e6a007a32da370f149c75b34d10cdd74'
 SPARK_API_SECRET = 'NTFmZGFlMThkMTQyNWZjZDcyZDAxOThm'
+
+# 快速分析建议模板
+QUICK_ANALYSIS_TEMPLATES = {
+    "胶质瘤": {
+        "description": "胶质瘤是最常见的原发性脑肿瘤，起源于神经胶质细胞。",
+        "risk_levels": {
+            "high": "高度恶性胶质瘤(WHO III-IV级)进展迅速，预后较差，需要积极治疗。",
+            "medium": "中度恶性胶质瘤(WHO II级)生长较慢，但有恶变风险，需要定期随访。",
+            "low": "低度恶性胶质瘤(WHO I级)生长缓慢，预后较好，但仍需定期随访。"
+        },
+        "follow_up": "建议每3-6个月进行一次MRI检查，监测肿瘤大小和特征变化。",
+        "tips": "保持良好生活习惯，避免过度疲劳，定期随访，遵医嘱服药。"
+    },
+    "脑膜瘤": {
+        "description": "脑膜瘤起源于脑膜，多为良性，生长缓慢，边界清晰。",
+        "risk_levels": {
+            "high": "少数恶性脑膜瘤(WHO II-III级)生长较快，可能侵袭周围组织，需要积极治疗。",
+            "medium": "非典型脑膜瘤(WHO II级)复发风险增加，需要更频繁随访。",
+            "low": "典型脑膜瘤(WHO I级)通常为良性，生长缓慢，预后良好。"
+        },
+        "follow_up": "建议每6-12个月进行一次MRI检查，监测肿瘤大小变化。",
+        "tips": "避免剧烈运动，保持充足睡眠，定期随访，注意头痛、视力变化等症状。"
+    },
+    "垂体瘤": {
+        "description": "垂体瘤是发生在垂体的肿瘤，可能影响激素分泌，导致内分泌紊乱。",
+        "risk_levels": {
+            "high": "大型垂体瘤(>4cm)可能压迫视神经和周围结构，需要积极治疗。",
+            "medium": "中型垂体瘤(1-4cm)需要评估激素水平和视力影响，可能需要治疗。",
+            "low": "微型垂体瘤(<1cm)通常可以观察随访，除非有明显症状或激素异常。"
+        },
+        "follow_up": "建议每6-12个月进行一次MRI检查和内分泌功能评估。",
+        "tips": "定期检查激素水平，注意视力变化，保持健康生活方式，避免过度疲劳。"
+    },
+    "无脑肿瘤": {
+        "description": "未检测到明确的脑肿瘤特征。",
+        "risk_levels": {
+            "high": "虽未检测到肿瘤，但如有持续症状，建议进一步检查。",
+            "medium": "可能存在其他非肿瘤性病变，建议咨询神经科医生。",
+            "low": "目前未见异常，建议保持健康生活习惯。"
+        },
+        "follow_up": "如无特殊症状，建议每年进行一次常规体检。",
+        "tips": "保持健康生活方式，避免过度疲劳，如出现持续头痛、视力变化等症状应及时就医。"
+    }
+}
 
 # DeepSeek配置
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
@@ -61,7 +135,7 @@ def load_models():
         print(f"模型加载失败: {str(e)}")
 
 # 在应用启动时加载模型
-load_models()
+# load_models()  # 注释掉这行，因为我们已经在init_app()中调用了load_models()
 
 # 类别映射
 CLASS_MAPPING = {
@@ -114,7 +188,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            avatar TEXT DEFAULT 'default-avatar.png',
+            bio TEXT DEFAULT '这个人很懒，什么都没有留下。'
         )
     ''')
     
@@ -160,6 +236,42 @@ def login():
         if user:
             session['logged_in'] = True
             session['username'] = username
+            session['user_id'] = user[0]
+            
+            # 安全地获取头像和个性签名，如果不存在则使用默认值
+            try:
+                session['avatar'] = user[3] if len(user) > 3 and user[3] else 'default-avatar.png'
+            except (IndexError, TypeError):
+                session['avatar'] = 'default-avatar.png'
+                
+            try:
+                session['bio'] = user[4] if len(user) > 4 and user[4] else '这个人很懒，什么都没有留下。'
+            except (IndexError, TypeError):
+                session['bio'] = '这个人很懒，什么都没有留下。'
+                
+            # 尝试更新用户表结构，确保有avatar和bio字段
+            try:
+                conn = sqlite3.connect('users.db')
+                c = conn.cursor()
+                # 检查users表是否有avatar列
+                c.execute("PRAGMA table_info(users)")
+                columns = [column[1] for column in c.fetchall()]
+                
+                if 'avatar' not in columns:
+                    c.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT 'default-avatar.png'")
+                
+                if 'bio' not in columns:
+                    c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
+                
+                # 确保当前用户有这些字段的值
+                c.execute("UPDATE users SET avatar = ?, bio = ? WHERE username = ? AND (avatar IS NULL OR bio IS NULL)",
+                         ('default-avatar.png', '这个人很懒，什么都没有留下。', username))
+                
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"更新用户表结构时出错: {str(e)}")
+            
             return redirect(url_for('diagnosis'))
         else:
             flash('用户名或密码错误')
@@ -174,17 +286,70 @@ def register():
     # 对密码进行哈希处理
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
     
+    # 处理头像选择
+    avatar_filename = 'default-avatar.png'
+
+    # 检查是否选择了系统预设头像
+    selected_system_avatar = request.form.get('selected_system_avatar')
+    if selected_system_avatar and selected_system_avatar != '':
+        # 检查是否是完整的文件名或者只是doctor-1这样的标识符
+        if selected_system_avatar in ['doctor-1', 'doctor-2', 'doctor-3']:
+            # 找到对应的实际文件名
+            if selected_system_avatar == 'doctor-1':
+                avatar_filename = '764a6dd107d9a82d754abfa52685d8.png'
+            elif selected_system_avatar == 'doctor-2':
+                avatar_filename = '888cf5dc5912c9211180789fa4db24.png'
+            elif selected_system_avatar == 'doctor-3':
+                avatar_filename = 'transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png'
+        else:
+            # 如果是完整文件名，直接使用
+            avatar_filename = selected_system_avatar
+        
+        print(f"使用系统头像: {avatar_filename}")
+
+    # 如果上传了自定义头像，优先使用自定义头像
+    elif 'avatar' in request.files:
+        avatar_file = request.files['avatar']
+        if avatar_file and avatar_file.filename != '' and allowed_file(avatar_file.filename):
+            # 生成安全的文件名
+            filename = secure_filename(avatar_file.filename)
+            # 添加时间戳避免文件名冲突
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            avatar_filename = f"{username}_{timestamp}_{filename}"
+            avatar_file.save(os.path.join(app.config['AVATARS_FOLDER'], avatar_filename))
+            print(f"使用自定义头像: {avatar_filename}")
+    
     try:
         conn = sqlite3.connect('users.db')
         c = conn.cursor()
-        c.execute('INSERT INTO users (username, password) VALUES (?, ?)', (username, hashed_password))
+        
+        # 检查users表结构
+        c.execute("PRAGMA table_info(users)")
+        columns = [column[1] for column in c.fetchall()]
+        
+        # 确保表有必要的列
+        if 'avatar' not in columns:
+            c.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT 'default-avatar.png'")
+        
+        if 'bio' not in columns:
+            c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
+        
+        # 根据表结构插入数据
+        if 'avatar' in columns and 'bio' in columns:
+            c.execute('INSERT INTO users (username, password, avatar, bio) VALUES (?, ?, ?, ?)', 
+                     (username, hashed_password, avatar_filename, '这个人很懒，什么都没有留下。'))
+        else:
+            # 如果表结构仍有问题，只插入基本信息
+            c.execute('INSERT INTO users (username, password) VALUES (?, ?)', 
+                     (username, hashed_password))
+        
         conn.commit()
         conn.close()
         flash('注册成功，请登录')
     except sqlite3.IntegrityError:
         flash('用户名已存在')
     except Exception as e:
-        flash('注册失败，请稍后重试')
+        flash(f'注册失败，请稍后重试: {str(e)}')
     
     return redirect(url_for('login'))
 
@@ -660,13 +825,13 @@ def detect():
 
         # 获取AI分析结果
         model_type = request.form.get('model', 'deepseek').lower()
-        if model_type not in ['deepseek', 'qwen']:
+        if model_type not in ['deepseek', 'qwen', 'quick']:
             model_type = 'deepseek'
 
         if output['detections']:
             # 计算良恶性概率
-            malignant_probs = [m['probability'] for m in output['malignancy'] if m['class'] == '良性']
-            benign_probs = [m['probability'] for m in output['malignancy'] if m['class'] == '恶性']
+            malignant_probs = [m['probability'] for m in output['malignancy'] if m['class'] == '恶性']
+            benign_probs = [m['probability'] for m in output['malignancy'] if m['class'] == '良性']
 
             analysis_data = {
                 "class_info": {
@@ -683,11 +848,19 @@ def detect():
             }
 
             try:
-                output['medical_analysis'] = get_ai_response(
-                    model_type=model_type,
-                    class_info=analysis_data['class_info'],
-                    detection_info=analysis_data['detection_info']
-                )
+                if model_type == 'quick':
+                    # 使用快速分析功能
+                    output['medical_analysis'] = get_quick_analysis(
+                        class_info=analysis_data['class_info'],
+                        detection_info=analysis_data['detection_info']
+                    )
+                else:
+                    # 使用大模型分析
+                    output['medical_analysis'] = get_ai_response(
+                        model_type=model_type,
+                        class_info=analysis_data['class_info'],
+                        detection_info=analysis_data['detection_info']
+                    )
             except Exception as e:
                 print(f"AI分析失败: {str(e)}")
                 output['medical_analysis'] = f"医学分析生成失败，请稍后再试。错误信息：{str(e)}"
@@ -1048,6 +1221,280 @@ def get_record(record_id):
         return jsonify({'success': True, 'record': dict(record)})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+# 快速分析功能
+def get_quick_analysis(class_info, detection_info):
+    """基于规则的快速医学建议分析"""
+    tumor_type = class_info['class_name']
+    probability = class_info['probability']
+    malignant_prob = detection_info['malignant_prob']
+    benign_prob = detection_info['benign_prob']
+    
+    # 获取对应肿瘤类型的模板
+    template = QUICK_ANALYSIS_TEMPLATES.get(tumor_type, QUICK_ANALYSIS_TEMPLATES["无脑肿瘤"])
+    
+    # 确定风险等级
+    risk_level = "low"
+    if malignant_prob > 70:
+        risk_level = "high"
+    elif malignant_prob > 30:
+        risk_level = "medium"
+    
+    # 生成分析结果
+    analysis = f"""【快速医学分析】
+
+▶ 肿瘤类型：{tumor_type}（置信度：{probability:.1f}%）
+{template['description']}
+
+▶ 风险评估：
+{template['risk_levels'][risk_level]}
+良性概率：{benign_prob:.1f}%，恶性概率：{malignant_prob:.1f}%
+
+▶ 随访建议：
+{template['follow_up']}
+
+▶ 日常注意事项：
+{template['tips']}
+
+※ 注意：此分析仅供参考，请咨询专业医生获取准确诊断和治疗方案。"""
+    
+    return analysis
+
+# 用户个人资料页面
+@app.route('/profile')
+def profile():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
+    # 获取用户信息
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    
+    # 检查users表结构
+    c.execute("PRAGMA table_info(users)")
+    columns = [column[1] for column in c.fetchall()]
+    
+    # 确保表有必要的列
+    table_modified = False
+    if 'avatar' not in columns:
+        c.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT 'default-avatar.png'")
+        table_modified = True
+    
+    if 'bio' not in columns:
+        c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
+        table_modified = True
+    
+    if table_modified:
+        conn.commit()
+    
+    # 获取用户数据
+    c.execute('SELECT * FROM users WHERE username = ?', (session['username'],))
+    user = c.fetchone()
+    conn.close()
+    
+    if not user:
+        flash('用户信息获取失败')
+        return redirect(url_for('diagnosis'))
+    
+    # 安全地构建用户数据字典
+    user_data = {
+        'id': user[0],
+        'username': user[1],
+        'avatar': user[3] if len(user) > 3 and user[3] else 'default-avatar.png',
+        'bio': user[4] if len(user) > 4 and user[4] else '这个人很懒，什么都没有留下。'
+    }
+    
+    # 更新会话中的用户信息
+    session['avatar'] = user_data['avatar']
+    session['bio'] = user_data['bio']
+    
+    return render_template('profile.html', user=user_data)
+
+# 更新用户个人资料
+@app.route('/update_profile', methods=['POST'])
+def update_profile():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
+    bio = request.form.get('bio', '这个人很懒，什么都没有留下。')
+    
+    # 处理头像上传
+    avatar_filename = session.get('avatar', 'default-avatar.png')
+    if 'avatar' in request.files:
+        avatar_file = request.files['avatar']
+        if avatar_file and avatar_file.filename != '' and allowed_file(avatar_file.filename):
+            # 生成安全的文件名
+            filename = secure_filename(avatar_file.filename)
+            # 添加时间戳避免文件名冲突
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            avatar_filename = f"{session['username']}_{timestamp}_{filename}"
+            avatar_file.save(os.path.join(app.config['AVATARS_FOLDER'], avatar_filename))
+    
+    try:
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        
+        # 检查users表结构
+        c.execute("PRAGMA table_info(users)")
+        columns = [column[1] for column in c.fetchall()]
+        
+        # 确保表有必要的列
+        table_modified = False
+        if 'avatar' not in columns:
+            c.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT 'default-avatar.png'")
+            table_modified = True
+        
+        if 'bio' not in columns:
+            c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
+            table_modified = True
+        
+        if table_modified:
+            conn.commit()
+        
+        # 更新用户资料
+        c.execute('UPDATE users SET avatar = ?, bio = ? WHERE username = ?', 
+                 (avatar_filename, bio, session['username']))
+        conn.commit()
+        conn.close()
+        
+        # 更新会话中的用户信息
+        session['avatar'] = avatar_filename
+        session['bio'] = bio
+        
+        # 确保静态文件夹存在
+        avatars_dir = os.path.join('static', 'avatars')
+        if not os.path.exists(avatars_dir):
+            os.makedirs(avatars_dir)
+
+        # 如果是默认头像，确保默认头像文件存在
+        if avatar_filename == 'default-avatar.png':
+            default_avatar_path = os.path.join(avatars_dir, 'default-avatar.png')
+            if not os.path.exists(default_avatar_path) or os.path.getsize(default_avatar_path) == 0:
+                try:
+                    # 创建一个简单的默认头像
+                    from PIL import Image, ImageDraw
+                    img = Image.new('RGB', (100, 100), color = (73, 109, 137))
+                    d = ImageDraw.Draw(img)
+                    d.ellipse((0, 0, 100, 100), fill=(255, 255, 255))
+                    img.save(default_avatar_path)
+                    print(f"创建了新的默认头像: {default_avatar_path}")
+                except Exception as e:
+                    # 如果PIL创建失败，至少创建一个空文件
+                    with open(default_avatar_path, 'w') as f:
+                        f.write('')
+                    print(f"创建默认头像失败: {str(e)}")
+
+        flash('个人资料更新成功')
+    except Exception as e:
+        flash(f'个人资料更新失败，请稍后重试: {str(e)}')
+    
+    return redirect(url_for('profile'))
+
+# 获取用户头像
+@app.route('/avatars/<filename>')
+def get_avatar(filename):
+    try:
+        # 尝试发送请求的头像文件
+        avatar_path = os.path.join(app.config['AVATARS_FOLDER'], filename)
+        if os.path.exists(avatar_path) and os.path.getsize(avatar_path) > 0:
+            return send_from_directory(app.config['AVATARS_FOLDER'], filename)
+        else:
+            # 如果文件不存在或为空，发送默认头像
+            print(f"请求的头像文件不存在或为空: {filename}，使用默认头像")
+            return send_from_directory(app.config['AVATARS_FOLDER'], 'default-avatar.png')
+    except Exception as e:
+        print(f"头像访问错误: {str(e)}")
+        # 发生错误时也返回默认头像
+        return send_from_directory(app.config['AVATARS_FOLDER'], 'default-avatar.png')
+
+# 初始化应用
+def init_app():
+    # 初始化数据库
+    init_db()
+    
+    # 加载模型
+    load_models()
+    
+    # 检查并修复数据库结构
+    try:
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        
+        # 检查users表结构
+        c.execute("PRAGMA table_info(users)")
+        columns = [column[1] for column in c.fetchall()]
+        
+        # 确保表有必要的列
+        table_modified = False
+        if 'avatar' not in columns:
+            c.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT 'default-avatar.png'")
+            table_modified = True
+            print("添加avatar列到users表")
+        
+        if 'bio' not in columns:
+            c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
+            table_modified = True
+            print("添加bio列到users表")
+        
+        if table_modified:
+            conn.commit()
+            print("数据库结构已更新")
+        
+        # 更新现有用户的空值
+        c.execute("UPDATE users SET avatar = 'default-avatar.png' WHERE avatar IS NULL")
+        c.execute("UPDATE users SET bio = '这个人很懒，什么都没有留下。' WHERE bio IS NULL")
+        conn.commit()
+        
+        conn.close()
+    except Exception as e:
+        print(f"检查数据库结构时出错: {str(e)}")
+    
+    # 确保静态文件夹存在
+    avatars_dir = os.path.join('static', 'avatars')
+    if not os.path.exists(avatars_dir):
+        os.makedirs(avatars_dir)
+        print(f"创建头像文件夹: {avatars_dir}")
+    
+    # 确保默认头像文件存在
+    default_avatar_path = os.path.join(avatars_dir, 'default-avatar.png')
+    if not os.path.exists(default_avatar_path) or os.path.getsize(default_avatar_path) == 0:
+        try:
+            # 创建一个简单的默认头像
+            from PIL import Image, ImageDraw
+            img = Image.new('RGB', (100, 100), color = (73, 109, 137))
+            d = ImageDraw.Draw(img)
+            d.ellipse((0, 0, 100, 100), fill=(255, 255, 255))
+            img.save(default_avatar_path)
+            print(f"创建了新的默认头像: {default_avatar_path}")
+        except Exception as e:
+            # 如果PIL创建失败，至少创建一个空文件
+            with open(default_avatar_path, 'w') as f:
+                f.write('')
+            print(f"创建默认头像失败: {str(e)}")
+    
+    # 确保系统预设头像存在
+    system_avatars = {
+        '764a6dd107d9a82d754abfa52685d8.png': (200, 0, 0),  # 红色系
+        '888cf5dc5912c9211180789fa4db24.png': (0, 0, 200),   # 蓝色系
+        'transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png': (0, 200, 0)  # 绿色系
+    }
+    
+    for avatar_file, color in system_avatars.items():
+        avatar_path = os.path.join(avatars_dir, avatar_file)
+        if not os.path.exists(avatar_path) or os.path.getsize(avatar_path) == 0:
+            try:
+                # 如果系统预设头像不存在，创建一个简单的替代头像
+                from PIL import Image, ImageDraw
+                img = Image.new('RGB', (100, 100), color=color)
+                d = ImageDraw.Draw(img)
+                d.ellipse((10, 10, 90, 90), fill=(255, 255, 255))
+                img.save(avatar_path)
+                print(f"创建了替代系统头像: {avatar_path}")
+            except Exception as e:
+                print(f"创建系统头像失败 {avatar_file}: {str(e)}")
+
+# 在应用启动时初始化
+init_app()
 
 if __name__ == '__main__':
     app.run(debug=True)

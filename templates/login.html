@@ -6,9 +6,656 @@
     <title>脑肿瘤医学诊断平台 - 登录</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body.login-page {
+            background-color: #f5f9fc;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* 登录容器基础样式 */
+        .auth-container {
+            background-color: rgba(255, 255, 255, 0.97);
+            border-radius: 16px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            position: relative;
+            z-index: 10;
+            width: 420px;
+            max-width: 95%;
+            margin: 20px;
+            transition: all 0.5s ease;
+        }
+        
+        /* 容器标题 */
+        .auth-header {
+            background: linear-gradient(135deg, #64b5f6, #2196f3);  /* 更淡的蓝色渐变 */
+            color: white;
+            padding: 16px 25px;
+            text-align: center;
+        }
+        
+        .auth-header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 600;
+        }
+        
+        .auth-header .logo-icon {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        
+        /* 表单容器 */
+        .auth-form {
+            padding: 25px;
+        }
+        
+        /* 输入框组 */
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+            font-size: 0.95rem;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .input-icon {
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .input-icon:focus-within {
+            box-shadow: 0 3px 12px rgba(33, 150, 243, 0.15);
+        }
+        
+        .input-icon input {
+            padding: 12px 15px 12px 40px;
+            font-size: 0.95rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .input-icon input:focus {
+            border-color: #2196f3;
+            outline: none;
+        }
+        
+        .input-icon i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #757575;
+            font-size: 1rem;
+        }
+        
+        /* 密码输入框容器样式 */
+        .password-field {
+            position: relative;
+        }
+        
+        /* 密码切换按钮样式 */
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            z-index: 10;
+        }
+        
+        /* 确保输入框有足够的右边距给按钮 */
+        .password-field input {
+            padding-right: 40px;
+        }
+        
+        /* 按钮样式 */
+        .btn-primary {
+            background: linear-gradient(135deg, #64b5f6, #2196f3);  /* 更淡的蓝色渐变 */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #42a5f5, #1976d2);  /* 悬停时稍深 */
+            box-shadow: 0 6px 16px rgba(33, 150, 243, 0.35);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f0f7ff;
+            color: #2196f3;
+            border: 1px solid #d0e5ff;
+            border-radius: 8px;
+            padding: 11px 18px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        
+        .btn-secondary:hover {
+            background: #e3f2fd;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        /* 登录/注册切换容器 */
+        .auth-switch {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .auth-switch p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        /* 提示消息样式 */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert i {
+            font-size: 1.2rem;
+        }
+        
+        .alert-danger {
+            background-color: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #ef5350;
+        }
+        
+        .alert-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #66bb6a;
+        }
+        
+        /* 注册表单特定样式 */
+        .register-container {
+            width: 700px;
+            max-width: 95%;
+        }
+        
+        .register-form {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .register-left, .register-right {
+            flex: 1;
+        }
+        
+        .register-divider {
+            position: relative;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .register-divider span {
+            background-color: white;
+            padding: 0 15px;
+            color: #666;
+            font-size: 0.95rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .register-divider:before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: #eee;
+            z-index: 0;
+        }
+        
+        /* 头像选择样式 */
+        .avatar-preview {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            border: 4px solid #2196f3;
+            background-size: cover;
+            background-position: center;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+        
+        .avatar-selection {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            background-color: #f5f5f5;
+            position: relative;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .avatar-option.selected {
+            border-color: #2196f3;
+            transform: scale(1.1);
+            box-shadow: 0 5px 12px rgba(33, 150, 243, 0.3);
+        }
+        
+        .avatar-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .doctor-avatar {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .avatar-upload {
+            text-align: center;
+            margin-top: 15px;
+        }
+        
+        .avatar-label {
+            cursor: pointer;
+            color: #2196f3;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 8px;
+            background-color: #f0f7ff;
+            border: 1px solid #d0e5ff;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .avatar-label:hover {
+            background-color: #e3f2fd;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .register-form {
+                flex-direction: column;
+            }
+            
+            .auth-container {
+                width: 95%;
+                margin: 10px;
+            }
+            
+            .auth-form {
+                padding: 20px;
+            }
+            
+            .avatar-option {
+                width: 60px;
+                height: 60px;
+            }
+        }
+        
+        /* 动态背景 */
+        .animated-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: linear-gradient(135deg, #f8fcff, #e8f5ff, #ebf8ff);  /* 更淡的蓝色渐变 */
+        }
+        
+        .shape {
+            position: absolute;
+            opacity: 0.15;  /* 降低不透明度从0.2到0.15 */
+            border-radius: 50%;
+        }
+        
+        .shape1 {
+            background: linear-gradient(135deg, #90caf9, #64b5f6);  /* 更淡的蓝色 */
+            width: 400px;
+            height: 400px;
+            top: -200px;
+            left: -200px;
+            animation: float 12s ease-in-out infinite;
+        }
+        
+        .shape2 {
+            background: linear-gradient(135deg, #a5d6a7, #81c784);  /* 更淡的绿色 */
+            width: 300px;
+            height: 300px;
+            bottom: -150px;
+            right: -150px;
+            animation: float 10s ease-in-out infinite;
+        }
+        
+        .shape3 {
+            background: linear-gradient(135deg, #b39ddb, #9575cd);  /* 更淡的紫色 */
+            width: 250px;
+            height: 250px;
+            top: 50%;
+            right: -100px;
+            animation: float 15s ease-in-out infinite;
+        }
+        
+        .shape4 {
+            background: linear-gradient(135deg, #81d4fa, #4fc3f7);  /* 更淡的天蓝色 */
+            width: 200px;
+            height: 200px;
+            bottom: 10%;
+            left: 10%;
+            animation: float 9s ease-in-out infinite;
+        }
+        
+        .shape5 {
+            background: linear-gradient(135deg, #ffcc80, #ffb74d);  /* 更淡的橙色 */
+            width: 180px;
+            height: 180px;
+            top: 30%;
+            left: 40%;
+            animation: float 14s ease-in-out infinite;
+        }
+        
+        .shape6 {
+            background: linear-gradient(135deg, #f48fb1, #ec407a);  /* 更淡的粉色 */
+            width: 220px;
+            height: 220px;
+            top: 70%;
+            right: 30%;
+            animation: float 16s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            50% {
+                transform: translate(50px, 50px) rotate(180deg);
+            }
+            100% {
+                transform: translate(0, 0) rotate(360deg);
+            }
+        }
+        
+        /* 医学元素 */
+        .medical-element {
+            position: absolute;
+            opacity: 0.25;
+            z-index: -1;
+            pointer-events: none;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+        }
+        
+        .brain-icon {
+            width: 100px;
+            top: 15%;
+            right: 10%;
+            animation: pulse 15s infinite;
+        }
+        
+        .dna-helix {
+            width: 80px;
+            bottom: 20%;
+            left: 15%;
+            animation: rotate 30s linear infinite;
+        }
+        
+        .neuron {
+            width: 120px;
+            top: 40%;
+            left: 5%;
+            animation: pulse 20s infinite;
+        }
+        
+        .ecg-line {
+            width: 150px;
+            top: 25%;
+            left: 20%;
+            animation: pulse 12s infinite;
+        }
+        
+        .molecule {
+            width: 70px;
+            bottom: 15%;
+            right: 20%;
+            animation: rotate 25s linear infinite;
+        }
+        
+        .brain-scan {
+            width: 120px;
+            top: 70%;
+            right: 5%;
+            animation: pulse 18s infinite;
+        }
+        
+        .microscope {
+            width: 90px;
+            bottom: 40%;
+            right: 25%;
+            animation: float 15s infinite;
+        }
+        
+        .cell {
+            width: 60px;
+            top: 60%;
+            left: 25%;
+            animation: rotate 20s linear infinite;
+        }
+        
+        .medical-cross {
+            width: 50px;
+            top: 10%;
+            left: 30%;
+            animation: pulse 10s infinite;
+        }
+        
+        .pulse {
+            width: 100px;
+            bottom: 10%;
+            left: 40%;
+            animation: pulse 14s infinite;
+        }
+        
+        /* 新增医学元素样式 */
+        .neuron-2 {
+            width: 100px;
+            top: 85%;
+            left: 75%;
+            animation: pulse 22s infinite;
+        }
+        
+        .brain-icon-2 {
+            width: 90px;
+            top: 35%;
+            right: 45%;
+            animation: float 17s infinite;
+        }
+        
+        .dna-helix-2 {
+            width: 70px;
+            bottom: 65%;
+            left: 65%;
+            animation: rotate 28s linear infinite;
+        }
+        
+        .molecule-2 {
+            width: 80px;
+            top: 55%;
+            right: 70%;
+            animation: rotate 20s linear infinite;
+        }
+        
+        .medical-cross-2 {
+            width: 60px;
+            top: 75%;
+            left: 10%;
+            animation: pulse 13s infinite;
+        }
+        
+        .cell-2 {
+            width: 55px;
+            top: 20%;
+            left: 60%;
+            animation: rotate 18s linear infinite;
+        }
+        
+        .brain-scan-2 {
+            width: 110px;
+            top: 5%;
+            right: 60%;
+            animation: pulse 16s infinite;
+        }
+        
+        .pulse-2 {
+            width: 85px;
+            bottom: 30%;
+            left: 55%;
+            animation: pulse 19s infinite;
+        }
+        
+        .ecg-line-2 {
+            width: 130px;
+            top: 45%;
+            right: 15%;
+            animation: pulse 14s infinite;
+        }
+        
+        .microscope-2 {
+            width: 75px;
+            bottom: 55%;
+            right: 50%;
+            animation: float 18s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.2;
+            }
+        }
+        
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* 粒子效果容器 */
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        /* 特定调整注册容器的标题 */
+        #registerContainer .auth-header {
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #64b5f6, #42a5f5);  /* 注册页面略有区别 */
+        }
+        
+        #registerContainer .auth-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        #registerContainer .auth-header .logo-icon {
+            font-size: 2rem;
+            margin-bottom: 6px;
+        }
+    </style>
 </head>
 <body class="login-page">
-    <!-- 动态背景容器 -->
+    <!-- 动态背景 -->
     <div class="animated-background">
         <div class="shape shape1"></div>
         <div class="shape shape2"></div>
@@ -31,79 +678,536 @@
         <img src="{{ url_for('static', filename='images/medical-cross.svg') }}" class="medical-element medical-cross" alt="医疗十字">
         <img src="{{ url_for('static', filename='images/pulse.svg') }}" class="medical-element pulse" alt="脉搏">
         
+        <!-- 额外增加医学元素 -->
+        <img src="{{ url_for('static', filename='images/neuron.svg') }}" class="medical-element neuron-2" alt="神经元2">
+        <img src="{{ url_for('static', filename='images/brain-icon.svg') }}" class="medical-element brain-icon-2" alt="脑图标2">
+        <img src="{{ url_for('static', filename='images/dna-helix.svg') }}" class="medical-element dna-helix-2" alt="DNA双螺旋2">
+        <img src="{{ url_for('static', filename='images/molecule.svg') }}" class="medical-element molecule-2" alt="分子结构2">
+        <img src="{{ url_for('static', filename='images/medical-cross.svg') }}" class="medical-element medical-cross-2" alt="医疗十字2">
+        <img src="{{ url_for('static', filename='images/cell.svg') }}" class="medical-element cell-2" alt="细胞2">
+        <img src="{{ url_for('static', filename='images/brain-scan.svg') }}" class="medical-element brain-scan-2" alt="脑扫描2">
+        <img src="{{ url_for('static', filename='images/pulse.svg') }}" class="medical-element pulse-2" alt="脉搏2">
+        <img src="{{ url_for('static', filename='images/ecg-line.svg') }}" class="medical-element ecg-line-2" alt="心电图2">
+        <img src="{{ url_for('static', filename='images/microscope.svg') }}" class="medical-element microscope-2" alt="显微镜2">
+        
         <!-- 粒子效果 -->
         <div class="particles-container" id="particles-js"></div>
     </div>
-    
-    <div class="login-container" id="loginForm">
-        <div class="login-header">
+
+    <!-- 登录表单 -->
+    <div class="auth-container" id="loginContainer">
+        <div class="auth-header">
             <div class="logo-icon"><i class="fas fa-brain"></i></div>
-            <h1>登录</h1>
+            <h1>脑肿瘤医学诊断平台</h1>
         </div>
-        <form method="POST" action="/login">
-            <div class="form-group">
-                <div class="input-icon">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="username" name="username" placeholder="用户名" required>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="input-icon">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="••••" required>
-                    <span class="password-toggle"><i class="fas fa-eye"></i></span>
-                </div>
-            </div>
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="alert alert-danger">
-                        {{ messages[0] }}
+        <div class="auth-form">
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" name="username" placeholder="请输入用户名" required>
                     </div>
-                {% endif %}
-            {% endwith %}
-            <div class="form-group">
-                <button type="submit" class="btn-login">登录 <i class="fas fa-sign-in-alt"></i></button>
-                <button type="button" class="btn-switch" id="switchToRegister">注册账号 <i class="fas fa-user-plus"></i></button>
-            </div>
-        </form>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <div class="input-icon password-field">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                        <button type="button" class="toggle-password" tabindex="-1" onclick="togglePasswordVisibility(this)"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i>
+                            {{ messages[0] }}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> 登录
+                </button>
+                
+                <div class="auth-switch">
+                    <p>还没有账号?</p>
+                    <button type="button" id="showRegister" class="btn-secondary">
+                        <i class="fas fa-user-plus"></i> 注册新账号
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
     
-    <div class="login-container register-container" id="registerForm" style="display: none;">
-        <div class="login-header">
+    <!-- 注册表单 -->
+    <div class="auth-container register-container" id="registerContainer" style="display: none;">
+        <div class="auth-header">
             <div class="logo-icon"><i class="fas fa-user-plus"></i></div>
-            <h1>注册账号</h1>
+            <h1>创建新账号</h1>
         </div>
-        <form id="registerFormElement">
-            <div class="form-group">
-                <div class="input-icon">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="reg-username" name="username" placeholder="设置用户名" required>
+        <div class="auth-form">
+            <form id="registerForm" enctype="multipart/form-data">
+                <div class="register-form">
+                    <!-- 左侧：头像选择 -->
+                    <div class="register-left">
+                        <div class="avatar-preview" id="avatar-preview"></div>
+                        <div class="register-divider"><span>选择头像</span></div>
+                        
+                        <div class="avatar-selection">
+                            <div class="avatar-option selected" data-avatar="doctor-1">
+                                <div class="doctor-avatar">
+                                    <img src="{{ url_for('get_avatar', filename='764a6dd107d9a82d754abfa52685d8.png') }}" alt="医生A" style="width:100%; height:100%; object-fit:cover;">
+                                </div>
+                            </div>
+                            <div class="avatar-option" data-avatar="doctor-2">
+                                <div class="doctor-avatar">
+                                    <img src="{{ url_for('get_avatar', filename='888cf5dc5912c9211180789fa4db24.png') }}" alt="医生B" style="width:100%; height:100%; object-fit:cover;">
+                                </div>
+                            </div>
+                            <div class="avatar-option" data-avatar="doctor-3">
+                                <div class="doctor-avatar">
+                                    <img src="{{ url_for('get_avatar', filename='transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png') }}" alt="医生C" style="width:100%; height:100%; object-fit:cover;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="avatar-upload">
+                            <label for="avatar-input" class="avatar-label">
+                                <i class="fas fa-upload"></i> 上传自定义头像
+                            </label>
+                            <input type="file" id="avatar-input" name="avatar" 
+                                   accept="image/png, image/jpeg, image/jpg, image/webp" 
+                                   onchange="previewAvatar(this)" style="display: none;">
+                        </div>
+                    </div>
+                    
+                    <!-- 右侧：账号信息 -->
+                    <div class="register-right">
+                        <div class="register-divider"><span>账号信息</span></div>
+                        
+                        <div class="form-group">
+                            <label for="reg-username">用户名</label>
+                            <div class="input-icon">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="reg-username" name="username" placeholder="设置用户名" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reg-password">密码</label>
+                            <div class="input-icon password-field">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="reg-password" name="password" placeholder="设置密码" required>
+                                <button type="button" class="toggle-password" tabindex="-1" onclick="togglePasswordVisibility(this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirm-password">确认密码</label>
+                            <div class="input-icon password-field">
+                                <i class="fas fa-check-circle"></i>
+                                <input type="password" id="confirm-password" name="confirm-password" placeholder="再次输入密码" required>
+                                <button type="button" class="toggle-password" tabindex="-1" onclick="togglePasswordVisibility(this)"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div id="register-message"></div>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <div class="input-icon">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="reg-password" name="password" placeholder="设置密码" required>
-                    <span class="password-toggle reg-password-toggle"><i class="fas fa-eye"></i></span>
+                
+                <!-- 隐藏字段，用于存储选择的头像 -->
+                <input type="hidden" id="selected-system-avatar" name="selected_system_avatar" value="doctor-1">
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <button type="button" id="registerBtn" class="btn-primary">
+                        <i class="fas fa-user-plus"></i> 创建账号
+                    </button>
                 </div>
-            </div>
-            <div class="form-group">
-                <div class="input-icon">
-                    <i class="fas fa-check-circle"></i>
-                    <input type="password" id="confirm-password" name="confirm-password" placeholder="确认密码" required>
+                
+                <div class="auth-switch">
+                    <p>已有账号?</p>
+                    <button type="button" id="showLogin" class="btn-secondary">
+                        <i class="fas fa-sign-in-alt"></i> 返回登录
+                    </button>
                 </div>
-            </div>
-            <div id="register-message"></div>
-            <div class="form-group">
-                <button type="button" class="btn-register" id="registerBtn">注册 <i class="fas fa-user-plus"></i></button>
-                <button type="button" class="btn-switch" id="switchToLogin">返回登录 <i class="fas fa-arrow-left"></i></button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
     
     <!-- 添加粒子效果JS -->
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
+
+    <!-- 切换密码可见性的函数 -->
+    <script>
+    // 头像预览功能
+    function previewAvatar(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const avatarPreview = document.getElementById('avatar-preview');
+                
+                // 清空容器
+                avatarPreview.innerHTML = '';
+                avatarPreview.style.background = 'none';
+                
+                // 创建新的图片元素
+                const img = document.createElement('img');
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '50%';
+                img.src = e.target.result;
+                img.alt = "自定义头像";
+                
+                // 添加图片到预览容器
+                avatarPreview.appendChild(img);
+                
+                // 取消其他头像的选择
+                document.querySelectorAll('.avatar-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                // 清空系统头像选择
+                document.getElementById('selected-system-avatar').value = '';
+                
+                console.log("已上传自定义头像"); // 调试信息
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // 切换密码可见性的函数
+    function togglePasswordVisibility(button) {
+        // 找到关联的密码输入框
+        const passwordInput = button.closest('.password-field').querySelector('input');
+        
+        // 切换密码可见性
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            button.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        } else {
+            passwordInput.type = 'password';
+            button.innerHTML = '<i class="fas fa-eye"></i>';
+        }
+        
+        // 阻止事件冒泡
+        return false;
+    }
+
+    // 页面加载完成后
+    document.addEventListener('DOMContentLoaded', function() {
+        // 设置默认预览头像
+        updateAvatarPreview('doctor-1');
+        console.log("页面加载完成，已设置默认头像");
+        
+        // 头像选择事件
+        document.querySelectorAll('.avatar-option').forEach(option => {
+            option.addEventListener('click', function() {
+                // 移除其他选项的选中状态
+                document.querySelectorAll('.avatar-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                // 添加当前选项的选中状态
+                this.classList.add('selected');
+                
+                // 获取选中的头像类型
+                const selectedAvatar = this.getAttribute('data-avatar');
+                console.log("选择了头像类型: " + selectedAvatar);
+                
+                // 更新隐藏字段的值
+                document.getElementById('selected-system-avatar').value = selectedAvatar;
+                
+                // 更新预览
+                updateAvatarPreview(selectedAvatar);
+                
+                // 清空文件输入
+                document.getElementById('avatar-input').value = '';
+            });
+        });
+        
+        // 登录/注册表单切换
+        document.getElementById('showRegister').addEventListener('click', function() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('registerContainer').style.display = 'block';
+        });
+        
+        document.getElementById('showLogin').addEventListener('click', function() {
+            document.getElementById('registerContainer').style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+        });
+        
+        // 注册表单提交
+        document.getElementById('registerBtn').addEventListener('click', function() {
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const messageDiv = document.getElementById('register-message');
+            
+            // 验证表单
+            if (!username || !password || !confirmPassword) {
+                messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 请填写所有必填字段</div>';
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 两次输入的密码不一致</div>';
+                return;
+            }
+            
+            // 创建FormData对象，包含文件上传
+            const formData = new FormData(document.getElementById('registerForm'));
+            
+            // 确保头像信息被正确添加到表单数据
+            const selectedAvatar = document.getElementById('selected-system-avatar').value;
+            if (selectedAvatar) {
+                formData.append('selected_system_avatar', selectedAvatar);
+                console.log('添加系统头像: ' + selectedAvatar);
+            }
+            
+            // 检查是否有自定义头像上传
+            const fileInput = document.getElementById('avatar-input');
+            if (fileInput.files && fileInput.files[0]) {
+                console.log('添加自定义头像');
+                // FormData会自动处理文件上传，无需额外代码
+            }
+            
+            // 发送AJAX请求
+            fetch('/register', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    return response.text();
+                }
+            })
+            .then(html => {
+                if (html) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const flashMessages = doc.querySelectorAll('.alert');
+                    if (flashMessages.length > 0) {
+                        messageDiv.innerHTML = '';
+                        flashMessages.forEach(message => {
+                            messageDiv.appendChild(message.cloneNode(true));
+                        });
+                    } else {
+                        window.location.href = '/login';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 注册失败，请稍后重试</div>';
+            });
+        });
+        
+        // 粒子效果配置并添加鼠标交互
+        if (typeof particlesJS !== 'undefined') {
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": {
+                        "value": 80,  // 减少粒子数量，从而减少线条
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": ["#2196f3", "#64b5f6", "#bbdefb", "#4caf50", "#9c27b0"]
+                    },
+                    "shape": {
+                        "type": ["circle", "triangle"],
+                        "stroke": {
+                            "width": 0,
+                            "color": "#000000"
+                        },
+                        "polygon": {
+                            "nb_sides": 5
+                        }
+                    },
+                    "opacity": {
+                        "value": 0.6,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 1,
+                            "opacity_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": true,
+                            "speed": 5,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#2196f3",
+                        "opacity": 0.4,
+                        "width": 1.5
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 3,
+                        "direction": "none",
+                        "random": true,
+                        "straight": false,
+                        "out_mode": "bounce",
+                        "bounce": true,
+                        "attract": {
+                            "enable": true,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "window",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "connect"  // 修改为connect模式，允许点击连接粒子
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 180,
+                            "line_linked": {
+                                "opacity": 0.8
+                            }
+                        },
+                        "bubble": {
+                            "distance": 200,
+                            "size": 6,
+                            "duration": 2,
+                            "opacity": 0.8,
+                            "speed": 3
+                        },
+                        "repulse": {
+                            "distance": 200,
+                            "duration": 0.4
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        },
+                        "remove": {
+                            "particles_nb": 2
+                        },
+                        "connect": {  // 新增connect模式配置
+                            "distance": 250,
+                            "line_linked": {
+                                "opacity": 0.6
+                            }
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        }
+    });
+
+    // 更新头像预览
+    function updateAvatarPreview(avatarType) {
+        const avatarPreview = document.getElementById('avatar-preview');
+        
+        // 清空内容
+        avatarPreview.innerHTML = '';
+        avatarPreview.style.background = 'none';
+        
+        // 创建新的图片元素
+        const img = document.createElement('img');
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '50%';
+        
+        if (avatarType === 'doctor-1') {
+            img.src = "{{ url_for('get_avatar', filename='764a6dd107d9a82d754abfa52685d8.png') }}";
+            img.alt = "医生A";
+        } 
+        else if (avatarType === 'doctor-2') {
+            img.src = "{{ url_for('get_avatar', filename='888cf5dc5912c9211180789fa4db24.png') }}";
+            img.alt = "医生B";
+        }
+        else if (avatarType === 'doctor-3') {
+            img.src = "{{ url_for('get_avatar', filename='transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png') }}";
+            img.alt = "医生C";
+        }
+        
+        // 添加图片到预览容器
+        avatarPreview.appendChild(img);
+        
+        console.log("已更新头像: " + avatarType); // 调试信息
+    }
+
+    // 鼠标移动效果
+    document.addEventListener('mousemove', function(e) {
+        // 鼠标坐标
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        
+        // 窗口尺寸
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // 计算鼠标位置的相对值（-1到1之间）
+        const relativeX = (mouseX / windowWidth) * 2 - 1;
+        const relativeY = (mouseY / windowHeight) * 2 - 1;
+        
+        // 背景形状跟随鼠标移动
+        document.querySelectorAll('.shape').forEach(shape => {
+            const shiftX = relativeX * 10; // 水平移动幅度
+            const shiftY = relativeY * 10; // 垂直移动幅度
+            
+            // 应用轻微的位移
+            shape.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+        });
+        
+        // 医学元素跟随鼠标移动（反向效果增强视差感）
+        document.querySelectorAll('.medical-element').forEach(element => {
+            // 计算元素位置与鼠标的距离
+            const rect = element.getBoundingClientRect();
+            const elementX = rect.left + rect.width / 2;
+            const elementY = rect.top + rect.height / 2;
+            
+            // 距离鼠标越近，移动越明显
+            const distance = Math.sqrt(
+                Math.pow(mouseX - elementX, 2) + 
+                Math.pow(mouseY - elementY, 2)
+            );
+            
+            // 计算移动方向和幅度（反向移动）
+            const maxDistance = Math.sqrt(windowWidth * windowWidth + windowHeight * windowHeight) / 2;
+            const moveRatio = (1 - Math.min(distance, maxDistance) / maxDistance) * 15;
+            
+            const moveX = (elementX - mouseX) / distance * moveRatio;
+            const moveY = (elementY - mouseY) / distance * moveRatio;
+            
+            // 应用变换
+            element.style.transform = `translate(${moveX}px, ${moveY}px) scale(${1 + moveRatio/100})`;
+            
+            // 距离鼠标近时增加不透明度
+            const opacityBoost = (1 - Math.min(distance, maxDistance) / maxDistance) * 0.3;
+            element.style.opacity = 0.25 + opacityBoost;
+        });
+    });
+    </script>
 </body>
 </html>
