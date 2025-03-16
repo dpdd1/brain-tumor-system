@@ -23,9 +23,10 @@
         </div>
         <nav>
             <ul>
-                <li><a href="{{ url_for('diagnosis') }}"><i class="fas fa-stethoscope"></i> 肿瘤诊断</a></li>
+                <li><a href="{{ url_for('diagnosis') }}"><i class="fas fa-search"></i> 肿瘤检测</a></li>
                 <li class="active"><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
                 <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
+                <li><a href="{{ url_for('video_detection') }}"><i class="fas fa-video"></i> 视频检测</a></li>
                 <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
                 <li class="user-profile">
                     <img src="{{ url_for('get_avatar', filename=session.get('avatar', 'default-avatar.png')) }}" alt="用户头像" class="user-avatar">

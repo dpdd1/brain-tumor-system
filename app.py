@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory, make_response, Response
 from werkzeug.utils import secure_filename
 import os
 import sqlite3
@@ -7,7 +7,7 @@ from datetime import datetime
 import cv2
 import numpy as np
 import torch
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
 import io
 import base64
@@ -16,6 +16,8 @@ import uuid
 import shutil
 import requests
 import time
+import threading
+from collections import deque
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # 用于session加密
@@ -34,6 +36,11 @@ app.config['AVATARS_FOLDER'] = AVATARS_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RESULTS_FOLDER, exist_ok=True)
 os.makedirs(AVATARS_FOLDER, exist_ok=True)
+
+# 配置视频存储
+RECORDS_FOLDER = 'static/records'
+app.config['RECORDS_FOLDER'] = RECORDS_FOLDER
+os.makedirs(RECORDS_FOLDER, exist_ok=True)
 
 # 确保默认头像文件存在 - 此处仅检查是否存在，具体创建在init_app()中完成
 default_avatar_path = os.path.join(AVATARS_FOLDER, 'default-avatar.png')
@@ -130,9 +137,9 @@ DEEPSEEK_HEADERS = {
 def load_models():
     global detection_model, segmentation_model, classification_model
     try:
-        detection_model = YOLO('models/detection.pt')
-        segmentation_model = YOLO('models/segmentation.pt')
-        classification_model = YOLO('models/classification.pt')
+        detection_model = YOLO('D:/demo/brain/models/detection.pt')
+        segmentation_model = YOLO('D:/demo/brain/models/segmentation.pt')
+        classification_model = YOLO('D:/demo/brain/models/classification.pt')
         print("YOLOv11模型加载成功")
     except Exception as e:
         print(f"模型加载失败: {str(e)}")
@@ -806,17 +813,38 @@ def get_ai_response(model_type, class_info, detection_info):
     max_retries = 3
     retry_delay = 1
 
+    # 生成位置信息的描述
+    position_text = "未检测到明确位置"
+    if detection_info['boxes'] and len(detection_info['boxes']) > 0:
+        position_text = "、".join(detection_info['boxes'])
+    
+    # 判断肿瘤良恶性倾向
+    malignancy_text = "良恶性无明确倾向"
+    if detection_info['malignant_prob'] > detection_info['benign_prob']:
+        if detection_info['malignant_prob'] > 70:
+            malignancy_text = f"高度倾向恶性（恶性概率 {detection_info['malignant_prob']:.1f}%）"
+        else:
+            malignancy_text = f"倾向恶性（恶性概率 {detection_info['malignant_prob']:.1f}%）"
+    elif detection_info['benign_prob'] > detection_info['malignant_prob']:
+        if detection_info['benign_prob'] > 70:
+            malignancy_text = f"高度倾向良性（良性概率 {detection_info['benign_prob']:.1f}%）"
+        else:
+            malignancy_text = f"倾向良性（良性概率 {detection_info['benign_prob']:.1f}%）"
+
     # 构造提示词
     prompt = f"""你是一名专业的放射科医生，根据以下脑肿瘤检测结果进行分析：
 1. 肿瘤分类结果：类型为【{class_info['class_name']}】，置信度{class_info['probability']:.1f}%
-2. 良恶性检测：良性概率{detection_info['malignant_prob']:.1f}%，恶性概率{detection_info['benign_prob']:.1f}%
-3. 肿瘤位置信息：{detection_info['boxes']}
+2. 良恶性检测：良性概率{detection_info['benign_prob']:.1f}%，恶性概率{detection_info['malignant_prob']:.1f}%，{malignancy_text}
+3. 肿瘤位置信息：{position_text}
 
-请结合医学知识分析预测：
-- 该类型肿瘤的典型发展规律
-- 基于当前检测结果的潜在风险
-- 建议的随访周期和检查方式
-- 日常注意事项
+请结合肿瘤良恶性概率和位置信息进行详细分析：
+- 该肿瘤{malignancy_text}对患者意味着什么
+- 基于{detection_info['benign_prob']:.1f}%的良性概率和{detection_info['malignant_prob']:.1f}%的恶性概率，评估患者风险
+- 良性vs恶性在此类肿瘤中的典型表现差异
+- 基于位置信息，该肿瘤可能影响的脑区功能
+- 根据位置和良恶性分析的治疗方案建议
+- 针对该概率分布的随访建议和检查频率
+- 针对这种良恶性概率患者的日常注意事项
 
 用中文回答，分点说明，控制在300字以内。"""
 
@@ -973,18 +1001,26 @@ def detect():
             # 计算良恶性概率
             malignant_probs = [m['probability'] for m in output['malignancy'] if m['class'] == '恶性']
             benign_probs = [m['probability'] for m in output['malignancy'] if m['class'] == '良性']
-
+            
+            # 确保有概率值
+            if not malignant_probs:
+                malignant_probs = [0.1]  # 如果没有恶性概率，添加一个默认低概率
+            if not benign_probs:
+                benign_probs = [0.1]  # 如果没有良性概率，添加一个默认低概率
+                
+            # 这里注意：benign_probs对应良性概率，malignant_probs对应恶性概率
             analysis_data = {
                 "class_info": {
-                    "class_name": output['detections'][0]['class'],
-                    "probability": output['detections'][0]['confidence'] * 100
+                    "class_name": output['detections'][0]['class'] if output['detections'] else "未检测到肿瘤",
+                    "probability": output['detections'][0]['confidence'] * 100 if output['detections'] else 0
                 },
                 "detection_info": {
-                    "malignant_prob": max(malignant_probs)*100 if malignant_probs else 0,
-                    "benign_prob": max(benign_probs)*100 if benign_probs else 0,
+                    "malignant_prob": max(malignant_probs)*100,  # 恶性概率
+                    "benign_prob": max(benign_probs)*100,  # 良性概率
                     "boxes": [
-                        f"({d['position']['x1']}, {d['position']['y1']})→({d['position']['x2']}, {d['position']['y2']})"
-                        for d in output['detections']]
+                        f"肿瘤区域 #{i+1}: 坐标范围 ({d['position']['x1']:.1f}, {d['position']['y1']:.1f}) 至 ({d['position']['x2']:.1f}, {d['position']['y2']:.1f}), 大小约 {((d['position']['x2']-d['position']['x1']) * (d['position']['y2']-d['position']['y1'])):.1f} 平方像素"
+                        for i, d in enumerate(output['detections']) if 'position' in d
+                    ] if output['detections'] else []
                 }
             }
 
@@ -1381,18 +1417,37 @@ def get_quick_analysis(class_info, detection_info):
     """基于规则的快速医学建议分析"""
     tumor_type = class_info['class_name']
     probability = class_info['probability']
-    malignant_prob = detection_info['malignant_prob']
-    benign_prob = detection_info['benign_prob']
+    malignant_prob = detection_info['malignant_prob']  # 恶性概率
+    benign_prob = detection_info['benign_prob']  # 良性概率
+    tumor_positions = detection_info['boxes']
     
     # 获取对应肿瘤类型的模板
     template = QUICK_ANALYSIS_TEMPLATES.get(tumor_type, QUICK_ANALYSIS_TEMPLATES["无脑肿瘤"])
     
-    # 确定风险等级
+    # 确定风险等级和良恶性倾向
     risk_level = "low"
     if malignant_prob > 70:
         risk_level = "high"
     elif malignant_prob > 30:
         risk_level = "medium"
+        
+    # 判断良恶性倾向
+    malignancy_text = "良恶性无明确倾向"
+    if malignant_prob > benign_prob:
+        if malignant_prob > 70:
+            malignancy_text = f"高度倾向恶性（恶性概率 {malignant_prob:.1f}%）"
+        else:
+            malignancy_text = f"倾向恶性（恶性概率 {malignant_prob:.1f}%）"
+    elif benign_prob > malignant_prob:
+        if benign_prob > 70:
+            malignancy_text = f"高度倾向良性（良性概率 {benign_prob:.1f}%）"
+        else:
+            malignancy_text = f"倾向良性（良性概率 {benign_prob:.1f}%）"
+    
+    # 生成位置信息的描述
+    position_description = "未检测到明确位置"
+    if tumor_positions and len(tumor_positions) > 0:
+        position_description = f"检测到肿瘤位置坐标: {', '.join(tumor_positions)}"
     
     # 生成分析结果
     analysis = f"""【快速医学分析】
@@ -1400,12 +1455,17 @@ def get_quick_analysis(class_info, detection_info):
 ▶ 肿瘤类型：{tumor_type}（置信度：{probability:.1f}%）
 {template['description']}
 
-▶ 风险评估：
-{template['risk_levels'][risk_level]}
-良性概率：{benign_prob:.1f}%，恶性概率：{malignant_prob:.1f}%
+▶ 良恶性分析：{malignancy_text}
+- 良性概率：{benign_prob:.1f}%
+- 恶性概率：{malignant_prob:.1f}%
+- {template['risk_levels'][risk_level]}
 
-▶ 随访建议：
-{template['follow_up']}
+▶ 肿瘤位置：
+{position_description}
+
+▶ 诊疗建议：
+- {template['follow_up']}
+- {'建议尽快就医进行进一步检查' if malignant_prob > 60 else '定期复查观察病情变化'}
 
 ▶ 日常注意事项：
 {template['tips']}
@@ -1761,6 +1821,12 @@ def init_app():
         os.makedirs(avatars_dir)
         print(f"创建头像文件夹: {avatars_dir}")
     
+    # 确保视频记录文件夹存在
+    records_dir = os.path.join('static', 'records')
+    if not os.path.exists(records_dir):
+        os.makedirs(records_dir)
+        print(f"创建视频记录文件夹: {records_dir}")
+    
     # 强制更新默认头像文件
     default_avatar_path = os.path.join(avatars_dir, 'default-avatar.png')
     try:
@@ -1816,6 +1882,257 @@ def init_app():
 
 # 在应用启动时初始化
 init_app()
+
+# 视频分析全局状态管理
+camera_status = {
+    'recording': False,
+    'frame': None,
+    'latest_video': None,
+    'results': deque(maxlen=10),
+    'lock': threading.Lock(),
+    'frame_count': 0,
+    'start_time': 0,
+    'error': None
+}
+
+# 初始化字体
+try:
+    font = ImageFont.truetype("msyh.ttc", 20)
+except:
+    try:
+        font = ImageFont.truetype("SimHei.ttf", 20)
+    except:
+        font = ImageFont.load_default()
+
+def generate_frames():
+    """生成视频流帧"""
+    while True:
+        try:
+            with camera_status['lock']:
+                if camera_status['frame'] is not None:
+                    ret, buffer = cv2.imencode('.jpg', camera_status['frame'])
+                    if ret:
+                        frame = buffer.tobytes()
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+            print(f"生成帧错误: {str(e)}")
+        time.sleep(1.0 / 30)  # 控制帧率
+
+
+def video_processing():
+    global camera_status
+    cap = None
+    out = None
+
+    try:
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            raise Exception("无法打开摄像头")
+
+        # 获取摄像头实际参数
+        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        actual_fps = max(int(cap.get(cv2.CAP_PROP_FPS)), 15)
+
+        # 生成存储路径
+        timestamp = int(time.time())
+        video_name = f"record_{timestamp}.mp4"
+        video_path = os.path.join(app.config['RECORDS_FOLDER'], video_name)
+
+        # 初始化视频写入器
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(
+            video_path,
+            fourcc,
+            actual_fps,
+            (actual_width, actual_height)
+        )
+
+        if not out.isOpened():
+            raise Exception("无法初始化视频写入器")
+
+        # 重置录制状态
+        camera_status['start_time'] = time.time()
+        camera_status['frame_count'] = 0
+        last_frame_time = time.time()
+
+        while camera_status['recording']:
+            current_time = time.time()
+            elapsed = current_time - last_frame_time
+            if elapsed < (1.0 / actual_fps):
+                time.sleep((1.0 / actual_fps) - elapsed)
+                continue
+
+            ret, frame = cap.read()
+            if not ret:
+                raise Exception("无法读取摄像头帧")
+
+            last_frame_time = current_time
+            camera_status['frame_count'] += 1
+
+            # 处理帧并保存结果
+            processed_frame, results = process_frame(frame)
+
+            with camera_status['lock']:
+                camera_status['frame'] = processed_frame.copy()
+                camera_status['results'].append(results)
+
+            out.write(processed_frame)
+
+    except Exception as e:
+        camera_status['error'] = f"视频处理错误: {str(e)}"
+        print(camera_status['error'])
+
+    finally:
+        if cap: cap.release()
+        if out: out.release()
+
+        if camera_status['recording']:
+            total_time = time.time() - camera_status['start_time']
+            actual_fps = camera_status['frame_count'] / total_time if total_time > 0 else 0
+            print(f"录制完成: {camera_status['frame_count']}帧, 时长{total_time:.2f}秒, 平均FPS: {actual_fps:.2f}")
+
+            # 验证文件保存
+            if os.path.exists(video_path):
+                camera_status['latest_video'] = video_name
+            else:
+                camera_status['error'] = "视频文件保存失败"
+
+        camera_status['recording'] = False
+        camera_status['frame'] = None
+        camera_status['frame_count'] = 0
+
+
+def process_frame(frame):
+    try:
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        pil_image = Image.fromarray(frame_rgb)
+        draw = ImageDraw.Draw(pil_image)
+
+        # 分类检测
+        cls_results = classification_model(frame)[0]
+        boxes = []
+        for box in cls_results.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            class_name = CLASS_MAPPING.get(classification_model.names[int(box.cls)], classification_model.names[int(box.cls)])
+            confidence = float(box.conf)
+
+            draw.rectangle([x1, y1, x2, y2], outline=(0, 255, 0), width=2)
+            label = f"{class_name} {confidence * 100:.1f}%"
+            draw.text((x1 + 2, y1 - 25), label, font=font, fill=(54, 255, 18))
+
+            boxes.append({
+                "type": "classification",
+                "class": class_name,
+                "confidence": confidence,
+                "coordinates": [x1, y1, x2, y2]
+            })
+
+        frame = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
+        # 良恶性检测
+        mal_results = detection_model(frame)[0]
+        malignancy = []
+        for box in mal_results.boxes:
+            confidence = float(box.conf)
+            class_name = "良性" if detection_model.names[int(box.cls)].lower() == 'positive' else "恶性"
+
+            malignancy.append({
+                "type": "malignancy",
+                "class": class_name,
+                "confidence": confidence
+            })
+
+        return frame, {
+            "timestamp": time.time(),
+            "classification": boxes,
+            "malignancy": malignancy
+        }
+    except Exception as e:
+        print(f"帧处理失败: {str(e)}")
+        return frame, {"timestamp": time.time(), "classification": [], "malignancy": []}
+
+# 视频检测页面
+@app.route('/video_detection')
+def video_detection():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
+    # 确保会话中有最新的用户头像
+    ensure_avatar_in_session()
+    
+    return render_template('index3.html')
+
+
+@app.route('/video_feed')
+def video_feed():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    return Response(generate_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+@app.route('/video_control', methods=['POST'])
+def video_control():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '未登录'})
+    
+    try:
+        action = request.json.get('action')
+        if action == 'start':
+            if not camera_status['recording']:
+                camera_status.update({
+                    'recording': True,
+                    'error': None,
+                    'latest_video': None
+                })
+                threading.Thread(target=video_processing, daemon=True).start()
+                return jsonify({"status": "RECORDING"})
+            return jsonify({"status": "ALREADY_RECORDING"})
+
+        elif action == 'stop':
+            camera_status['recording'] = False
+            if camera_status['error']:
+                return jsonify({"status": "ERROR", "error": camera_status['error']})
+            return jsonify({
+                "status": "STOPPED",
+                "video_url": f"/video_record/{camera_status['latest_video']}" if camera_status['latest_video'] else None
+            })
+
+        return jsonify({"status": "INVALID_ACTION"})
+
+    except Exception as e:
+        return jsonify({"status": "ERROR", "error": str(e)}), 500
+
+
+@app.route('/get_video_results')
+def get_video_results():
+    if not session.get('logged_in'):
+        return jsonify({'success': False, 'message': '未登录'})
+    
+    with camera_status['lock']:
+        results = list(camera_status['results'])
+    return jsonify(results)
+
+
+@app.route('/video_record/<filename>')
+def serve_video(filename):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    
+    try:
+        # 安全验证
+        if '..' in filename or filename.startswith('/'):
+            raise ValueError("非法文件名")
+
+        return send_from_directory(
+            directory=app.config['RECORDS_FOLDER'],
+            path=filename,
+            as_attachment=False
+        )
+    except (FileNotFoundError, ValueError) as e:
+        return jsonify({"error": str(e)}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
