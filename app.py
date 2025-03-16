@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, send_from_directory, make_response
 from werkzeug.utils import secure_filename
 import os
 import sqlite3
@@ -24,7 +24,7 @@ app.secret_key = 'your-secret-key-here'  # 用于session加密
 UPLOAD_FOLDER = 'static/uploads'
 RESULTS_FOLDER = 'static/results'
 AVATARS_FOLDER = 'static/avatars'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['RESULTS_FOLDER'] = RESULTS_FOLDER
@@ -35,30 +35,33 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(RESULTS_FOLDER, exist_ok=True)
 os.makedirs(AVATARS_FOLDER, exist_ok=True)
 
-# 确保默认头像文件存在
+# 确保默认头像文件存在 - 此处仅检查是否存在，具体创建在init_app()中完成
 default_avatar_path = os.path.join(AVATARS_FOLDER, 'default-avatar.png')
 if not os.path.exists(default_avatar_path):
     try:
-        # 尝试下载或复制一个简单的默认头像图片
-        # 可以使用一个基本图片库创建简单头像
+        # 创建一个临时的默认头像
         from PIL import Image, ImageDraw
         
-        # 创建一个100x100的蓝色圆形头像
-        img = Image.new('RGBA', (100, 100), (255, 255, 255, 0))
-        draw = ImageDraw.Draw(img)
-        draw.ellipse((0, 0, 99, 99), fill=(65, 105, 225, 255))
+        # 使用灰色背景和蓝边框创建默认头像
+        img = Image.new('RGB', (100, 100), color=(230, 230, 230))  # 浅灰色背景
+        d = ImageDraw.Draw(img)
+        # 绘制蓝色圆形
+        d.ellipse((0, 0, 99, 99), fill=(65, 105, 225))  # 蓝色填充
+        # 在中间绘制一个白色小圆形表示人物
+        d.ellipse((25, 15, 75, 65), fill=(255, 255, 255))  # 白色头部
+        # 绘制身体部分
+        d.rectangle((40, 65, 60, 85), fill=(255, 255, 255))  # 白色身体
         
-        # 保存到文件
-        img.save(default_avatar_path, 'PNG')
-        print(f"创建默认头像文件: {default_avatar_path}")
+        img.save(default_avatar_path)
+        print(f"初始创建默认头像文件: {default_avatar_path}")
     except Exception as e:
         print(f"创建默认头像文件失败: {str(e)}")
         # 创建一个回退方案，至少确保文件存在
         try:
-            # 创建一个简单的空头像文件
             with open(default_avatar_path, 'wb') as f:
-                f.write(b'')  # 写入空字节
-            print(f"创建空默认头像文件: {default_avatar_path}")
+                # 写入一个简单的PNG数据
+                f.write(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDAT\x08\xd7c\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xdc\xccY\xe7\x00\x00\x00\x00IEND\xaeB`\x82')
+            print(f"创建小的默认头像文件: {default_avatar_path}")
         except Exception as e2:
             print(f"创建空默认头像文件也失败: {str(e2)}")
 
@@ -213,7 +216,43 @@ def init_db():
 init_db()
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    """检查上传的文件类型是否在允许列表中"""
+    if '.' not in filename:
+        print(f"文件名 {filename} 没有扩展名")
+        return False
+    
+    file_ext = filename.rsplit('.', 1)[1].lower()
+    is_allowed = file_ext in ALLOWED_EXTENSIONS
+    
+    if not is_allowed:
+        print(f"文件扩展名 {file_ext} 不在允许列表中: {ALLOWED_EXTENSIONS}")
+    
+    return is_allowed
+
+# 确保会话中有最新的用户头像
+def ensure_avatar_in_session():
+    if not session.get('logged_in') or not session.get('username'):
+        return
+    
+    try:
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute('SELECT avatar FROM users WHERE username = ?', (session['username'],))
+        result = c.fetchone()
+        conn.close()
+        
+        if result and result[0]:
+            # 只有当数据库中的头像与会话中的不同时才更新
+            if 'avatar' not in session or session['avatar'] != result[0]:
+                print(f"更新会话中的头像: {session.get('avatar', '无')} -> {result[0]}")
+                session['avatar'] = result[0]
+        else:
+            if 'avatar' not in session:
+                session['avatar'] = 'default-avatar.png'
+    except Exception as e:
+        print(f"获取用户头像失败: {str(e)}")
+        if 'avatar' not in session:
+            session['avatar'] = 'default-avatar.png'
 
 # 登录页面路由
 @app.route('/')
@@ -288,36 +327,94 @@ def register():
     
     # 处理头像选择
     avatar_filename = 'default-avatar.png'
+    avatar_saved = False  # 标记是否成功保存了头像文件
 
-    # 检查是否选择了系统预设头像
-    selected_system_avatar = request.form.get('selected_system_avatar')
-    if selected_system_avatar and selected_system_avatar != '':
-        # 检查是否是完整的文件名或者只是doctor-1这样的标识符
-        if selected_system_avatar in ['doctor-1', 'doctor-2', 'doctor-3']:
-            # 找到对应的实际文件名
-            if selected_system_avatar == 'doctor-1':
-                avatar_filename = '764a6dd107d9a82d754abfa52685d8.png'
-            elif selected_system_avatar == 'doctor-2':
-                avatar_filename = '888cf5dc5912c9211180789fa4db24.png'
-            elif selected_system_avatar == 'doctor-3':
-                avatar_filename = 'transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png'
-        else:
-            # 如果是完整文件名，直接使用
-            avatar_filename = selected_system_avatar
-        
-        print(f"使用系统头像: {avatar_filename}")
-
-    # 如果上传了自定义头像，优先使用自定义头像
-    elif 'avatar' in request.files:
+    # 确保头像目录存在
+    os.makedirs(app.config['AVATARS_FOLDER'], exist_ok=True)
+    
+    print("===== 开始处理注册头像 =====")
+    print(f"表单数据: {request.form}")
+    print(f"文件数据: {request.files}")
+    # 先尝试处理自定义头像上传 - 优先级最高
+    if 'avatar' in request.files:
         avatar_file = request.files['avatar']
+        print(f"DEBUG: 注册时上传的头像文件: {avatar_file.filename if avatar_file else None}")
+        
         if avatar_file and avatar_file.filename != '' and allowed_file(avatar_file.filename):
-            # 生成安全的文件名
-            filename = secure_filename(avatar_file.filename)
-            # 添加时间戳避免文件名冲突
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            avatar_filename = f"{username}_{timestamp}_{filename}"
-            avatar_file.save(os.path.join(app.config['AVATARS_FOLDER'], avatar_filename))
-            print(f"使用自定义头像: {avatar_filename}")
+            try:
+                # 生成安全的文件名
+                filename = secure_filename(avatar_file.filename)
+                # 添加时间戳避免文件名冲突
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                avatar_filename = f"{username}_{timestamp}_{filename}"
+                avatar_path = os.path.join(app.config['AVATARS_FOLDER'], avatar_filename)
+                avatar_file.save(avatar_path)
+                
+                # 检查文件是否成功保存并且非空
+                if os.path.exists(avatar_path) and os.path.getsize(avatar_path) > 0:
+                    print(f"成功保存自定义头像: {avatar_filename}，大小: {os.path.getsize(avatar_path)} 字节")
+                    avatar_saved = True
+                else:
+                    print(f"自定义头像保存失败或文件为空: {avatar_path}")
+                    avatar_filename = 'default-avatar.png'  # 回退到默认头像
+            except Exception as e:
+                print(f"保存自定义头像时出错: {str(e)}")
+                avatar_filename = 'default-avatar.png'  # 出错时使用默认头像
+    
+    # 如果自定义头像处理失败，再检查是否选择了系统预设头像
+    if not avatar_saved:
+        # 检查是否选择了系统预设头像
+        selected_system_avatar = request.form.get('selected_system_avatar')
+        print(f"DEBUG: 注册时选择的系统头像: {selected_system_avatar}")
+        
+        if selected_system_avatar and selected_system_avatar != '':
+            # 检查是否是完整的文件名或者只是doctor-1这样的标识符
+            if selected_system_avatar in ['doctor-1', 'doctor-2', 'doctor-3']:
+                # 找到对应的实际文件名
+                if selected_system_avatar == 'doctor-1':
+                    avatar_filename = 'b4265bcc71b199c3223c8090a8bda350.png'
+                elif selected_system_avatar == 'doctor-2':
+                    avatar_filename = '5c5c70487e68968ccb5fa2cdb4bde9a7.png'
+                elif selected_system_avatar == 'doctor-3':
+                    avatar_filename = '342cbbb4-2f57-40b7-8b21-a29766f80fc3.png'
+            else:
+                # 如果是完整文件名，直接使用
+                avatar_filename = selected_system_avatar
+            
+            print(f"使用系统头像: {avatar_filename}")
+            # 确保头像文件存在
+            avatar_path = os.path.join(app.config['AVATARS_FOLDER'], avatar_filename)
+            if not os.path.exists(avatar_path):
+                print(f"警告: 选择的头像文件不存在: {avatar_path}")
+                
+                # 对于系统预设头像，如果不存在则创建一个空白的默认头像
+                if avatar_filename in ['b4265bcc71b199c3223c8090a8bda350.png', '5c5c70487e68968ccb5fa2cdb4bde9a7.png', '342cbbb4-2f57-40b7-8b21-a29766f80fc3.png']:
+                    try:
+                        avatars_dir = app.config['AVATARS_FOLDER']
+                        os.makedirs(avatars_dir, exist_ok=True)
+                        
+                        # 根据文件名选择不同的颜色
+                        if avatar_filename == 'b4265bcc71b199c3223c8090a8bda350.png':
+                            color = (200, 0, 0)  # 红色系
+                        elif avatar_filename == '5c5c70487e68968ccb5fa2cdb4bde9a7.png':
+                            color = (0, 0, 200)  # 蓝色系
+                        else:
+                            color = (0, 200, 0)  # 绿色系
+                        
+                        # 创建一个简单的颜色头像
+                        from PIL import Image, ImageDraw
+                        img = Image.new('RGB', (100, 100), color=color)
+                        d = ImageDraw.Draw(img)
+                        d.ellipse((10, 10, 90, 90), fill=(255, 255, 255))
+                        img.save(avatar_path)
+                        print(f"创建了缺失的系统头像: {avatar_path}")
+                    except Exception as e:
+                        print(f"创建系统头像失败 {avatar_filename}: {str(e)}")
+                        avatar_filename = 'default-avatar.png'  # 失败时使用默认头像
+                else:
+                    avatar_saved = True
+    
+    print(f"DEBUG: 最终使用的头像文件名: {avatar_filename}")
     
     try:
         conn = sqlite3.connect('users.db')
@@ -335,6 +432,7 @@ def register():
             c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
         
         # 根据表结构插入数据
+        print(f"DEBUG: 准备向数据库插入头像: {avatar_filename}")
         if 'avatar' in columns and 'bio' in columns:
             c.execute('INSERT INTO users (username, password, avatar, bio) VALUES (?, ?, ?, ?)', 
                      (username, hashed_password, avatar_filename, '这个人很懒，什么都没有留下。'))
@@ -344,20 +442,55 @@ def register():
                      (username, hashed_password))
         
         conn.commit()
+        
+        # 在注册成功后自动登录
+        # 获取新注册用户的信息，包括ID和头像
+        c.execute('SELECT * FROM users WHERE username = ?', (username,))
+        user = c.fetchone()
+        
+        # 验证头像是否正确写入
+        if user:
+            print(f"DEBUG: 注册成功后从数据库获取的用户信息: {user}")
+            print(f"DEBUG: 注册成功后从数据库获取的用户头像: {user[3] if len(user) > 3 else None}")
+        
         conn.close()
-        flash('注册成功，请登录')
+        
+        if user:
+            # 设置会话信息
+            session['logged_in'] = True
+            session['username'] = username
+            session['user_id'] = user[0]
+            
+            # 安全地获取头像和个性签名
+            try:
+                session['avatar'] = user[3] if len(user) > 3 and user[3] else 'default-avatar.png'
+                print(f"DEBUG: 设置会话头像为: {session['avatar']}")
+            except (IndexError, TypeError):
+                session['avatar'] = 'default-avatar.png'
+                print(f"DEBUG: 设置会话默认头像")
+                
+            try:
+                session['bio'] = user[4] if len(user) > 4 and user[4] else '这个人很懒，什么都没有留下。'
+            except (IndexError, TypeError):
+                session['bio'] = '这个人很懒，什么都没有留下。'
+                
+            flash('注册成功，已自动登录')
+            return redirect(url_for('diagnosis'))
+        else:
+            flash('注册成功，请登录')
     except sqlite3.IntegrityError:
         flash('用户名已存在')
     except Exception as e:
         flash(f'注册失败，请稍后重试: {str(e)}')
+        print(f"DEBUG: 注册过程中发生异常: {str(e)}")
     
     return redirect(url_for('login'))
 
 # 登出路由
 @app.route('/logout')
 def logout():
-    session.pop('logged_in', None)
-    session.pop('username', None)
+    # 清除所有会话信息
+    session.clear()
     return redirect(url_for('login'))
 
 # 肿瘤诊断页面
@@ -365,6 +498,10 @@ def logout():
 def diagnosis():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+    
+    # 确保会话中有最新的用户头像
+    ensure_avatar_in_session()
+    
     return render_template('diagnosis.html')
 
 # 处理诊断图像上传和检测
@@ -433,6 +570,10 @@ def upload_diagnosis():
 def segmentation():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+    
+    # 确保会话中有最新的用户头像
+    ensure_avatar_in_session()
+    
     return render_template('segmentation.html')
 
 # 处理分割图像上传和分割
@@ -1023,14 +1164,27 @@ def records():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
-    # 获取当前用户的治疗记录
+    # 确保会话中有最新的用户头像
+    ensure_avatar_in_session()
+    
     username = session.get('username')
+    
     conn = sqlite3.connect('users.db')
-    conn.row_factory = sqlite3.Row  # 启用行工厂，使结果可以通过列名访问
     c = conn.cursor()
-    c.execute('SELECT * FROM records WHERE username = ? ORDER BY detection_date DESC', (username,))
-    records = c.fetchall()
+    c.execute('''SELECT id, initial_image, mask_image, detection_date, created_at
+                FROM records WHERE username = ? ORDER BY created_at DESC''', (username,))
+    records_data = c.fetchall()
     conn.close()
+    
+    records = []
+    for record in records_data:
+        records.append({
+            'id': record[0],
+            'initial_image': record[1],
+            'mask_image': record[2],
+            'detection_date': record[3],
+            'created_at': record[4]
+        })
     
     return render_template('records.html', records=records)
 
@@ -1266,28 +1420,11 @@ def profile():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
-    # 获取用户信息
+    # 确保会话中有最新的用户头像
+    ensure_avatar_in_session()
+    
     conn = sqlite3.connect('users.db')
     c = conn.cursor()
-    
-    # 检查users表结构
-    c.execute("PRAGMA table_info(users)")
-    columns = [column[1] for column in c.fetchall()]
-    
-    # 确保表有必要的列
-    table_modified = False
-    if 'avatar' not in columns:
-        c.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT 'default-avatar.png'")
-        table_modified = True
-    
-    if 'bio' not in columns:
-        c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
-        table_modified = True
-    
-    if table_modified:
-        conn.commit()
-    
-    # 获取用户数据
     c.execute('SELECT * FROM users WHERE username = ?', (session['username'],))
     user = c.fetchone()
     conn.close()
@@ -1316,77 +1453,205 @@ def update_profile():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
-    bio = request.form.get('bio', '这个人很懒，什么都没有留下。')
+    # 获取表单类型，根据不同的表单处理不同的更新操作
+    form_type = request.form.get('form_type', 'basic_info')
     
-    # 处理头像上传
-    avatar_filename = session.get('avatar', 'default-avatar.png')
-    if 'avatar' in request.files:
-        avatar_file = request.files['avatar']
-        if avatar_file and avatar_file.filename != '' and allowed_file(avatar_file.filename):
-            # 生成安全的文件名
-            filename = secure_filename(avatar_file.filename)
-            # 添加时间戳避免文件名冲突
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            avatar_filename = f"{session['username']}_{timestamp}_{filename}"
-            avatar_file.save(os.path.join(app.config['AVATARS_FOLDER'], avatar_filename))
-    
-    try:
-        conn = sqlite3.connect('users.db')
-        c = conn.cursor()
+    # 处理基本资料更新（头像和个性签名）
+    if form_type == 'basic_info':
+        bio = request.form.get('bio', '这个人很懒，什么都没有留下。')
         
-        # 检查users表结构
-        c.execute("PRAGMA table_info(users)")
-        columns = [column[1] for column in c.fetchall()]
+        # 处理头像上传
+        avatar_filename = session.get('avatar', 'default-avatar.png')
+        if 'avatar' in request.files:
+            avatar_file = request.files['avatar']
+            if avatar_file and avatar_file.filename != '' and allowed_file(avatar_file.filename):
+                # 生成安全的文件名
+                filename = secure_filename(avatar_file.filename)
+                # 添加时间戳避免文件名冲突
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                avatar_filename = f"{session['username']}_{timestamp}_{filename}"
+                avatar_file.save(os.path.join(app.config['AVATARS_FOLDER'], avatar_filename))
         
-        # 确保表有必要的列
-        table_modified = False
-        if 'avatar' not in columns:
-            c.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT 'default-avatar.png'")
-            table_modified = True
-        
-        if 'bio' not in columns:
-            c.execute("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT '这个人很懒，什么都没有留下。'")
-            table_modified = True
-        
-        if table_modified:
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
+            
+            # 更新用户资料
+            c.execute('UPDATE users SET avatar = ?, bio = ? WHERE username = ?', 
+                     (avatar_filename, bio, session['username']))
             conn.commit()
+            conn.close()
+            
+            # 更新会话中的用户信息
+            session['avatar'] = avatar_filename
+            session['bio'] = bio
+            
+            flash('个人资料更新成功')
+        except Exception as e:
+            flash(f'个人资料更新失败，请稍后重试: {str(e)}')
+    
+    # 处理账号设置更新（用户名）
+    elif form_type == 'account_settings':
+        new_username = request.form.get('username')
+        current_password = request.form.get('current_password')
         
-        # 更新用户资料
-        c.execute('UPDATE users SET avatar = ?, bio = ? WHERE username = ?', 
-                 (avatar_filename, bio, session['username']))
-        conn.commit()
-        conn.close()
+        if not new_username or not current_password:
+            flash('用户名和当前密码不能为空')
+            return redirect(url_for('profile'))
         
-        # 更新会话中的用户信息
-        session['avatar'] = avatar_filename
-        session['bio'] = bio
+        # 验证当前密码是否正确
+        hashed_password = hashlib.sha256(current_password.encode()).hexdigest()
         
-        # 确保静态文件夹存在
-        avatars_dir = os.path.join('static', 'avatars')
-        if not os.path.exists(avatars_dir):
-            os.makedirs(avatars_dir)
-
-        # 如果是默认头像，确保默认头像文件存在
-        if avatar_filename == 'default-avatar.png':
-            default_avatar_path = os.path.join(avatars_dir, 'default-avatar.png')
-            if not os.path.exists(default_avatar_path) or os.path.getsize(default_avatar_path) == 0:
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
+            
+            # 验证密码
+            c.execute('SELECT id FROM users WHERE username = ? AND password = ?', 
+                     (session['username'], hashed_password))
+            user = c.fetchone()
+            
+            if not user:
+                flash('当前密码不正确')
+                conn.close()
+                return redirect(url_for('profile'))
+            
+            # 检查新用户名是否已存在（如果新用户名与当前用户名不同）
+            if new_username != session['username']:
+                c.execute('SELECT id FROM users WHERE username = ?', (new_username,))
+                existing_user = c.fetchone()
+                
+                if existing_user:
+                    flash('用户名已被占用，请选择其他用户名')
+                    conn.close()
+                    return redirect(url_for('profile'))
+                
+                # 更新用户名
+                c.execute('UPDATE users SET username = ? WHERE id = ?', 
+                         (new_username, user[0]))
+                
+                # 更新关联记录中的用户名（如果有记录表）
                 try:
-                    # 创建一个简单的默认头像
-                    from PIL import Image, ImageDraw
-                    img = Image.new('RGB', (100, 100), color = (73, 109, 137))
-                    d = ImageDraw.Draw(img)
-                    d.ellipse((0, 0, 100, 100), fill=(255, 255, 255))
-                    img.save(default_avatar_path)
-                    print(f"创建了新的默认头像: {default_avatar_path}")
+                    c.execute('UPDATE records SET username = ? WHERE username = ?', 
+                             (new_username, session['username']))
                 except Exception as e:
-                    # 如果PIL创建失败，至少创建一个空文件
-                    with open(default_avatar_path, 'w') as f:
-                        f.write('')
-                    print(f"创建默认头像失败: {str(e)}")
+                    print(f"更新记录表用户名时出错: {str(e)}")
+                
+                conn.commit()
+                
+                # 更新会话
+                old_username = session['username']
+                session['username'] = new_username
+                
+                # 如果头像名称中包含用户名，可能需要更新头像文件名
+                if session.get('avatar') and old_username in session['avatar']:
+                    try:
+                        old_avatar = session['avatar']
+                        new_avatar = old_avatar.replace(old_username, new_username)
+                        old_path = os.path.join(app.config['AVATARS_FOLDER'], old_avatar)
+                        new_path = os.path.join(app.config['AVATARS_FOLDER'], new_avatar)
+                        
+                        if os.path.exists(old_path):
+                            # 复制文件到新名称
+                            shutil.copy2(old_path, new_path)
+                            
+                            # 更新数据库中的头像名称
+                            c.execute('UPDATE users SET avatar = ? WHERE id = ?', 
+                                     (new_avatar, user[0]))
+                            conn.commit()
+                            
+                            # 更新会话中的头像
+                            session['avatar'] = new_avatar
+                    except Exception as e:
+                        print(f"更新头像文件名时出错: {str(e)}")
+                
+                flash('用户名更新成功')
+            else:
+                flash('用户名保持不变')
+            
+            conn.close()
+        except Exception as e:
+            flash(f'更新用户名失败，请稍后重试: {str(e)}')
+    
+    # 处理密码更新
+    elif form_type == 'password_change':
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not old_password or not new_password or not confirm_password:
+            flash('所有密码字段都不能为空')
+            return redirect(url_for('profile'))
+        
+        if new_password != confirm_password:
+            flash('新密码和确认密码不匹配')
+            return redirect(url_for('profile'))
+        
+        # 验证旧密码
+        hashed_old_password = hashlib.sha256(old_password.encode()).hexdigest()
+        
+        try:
+            conn = sqlite3.connect('users.db')
+            c = conn.cursor()
+            
+            c.execute('SELECT id FROM users WHERE username = ? AND password = ?', 
+                     (session['username'], hashed_old_password))
+            user = c.fetchone()
+            
+            if not user:
+                flash('当前密码不正确')
+                conn.close()
+                return redirect(url_for('profile'))
+            
+            # 对新密码进行哈希处理
+            hashed_new_password = hashlib.sha256(new_password.encode()).hexdigest()
+            
+            # 更新密码
+            c.execute('UPDATE users SET password = ? WHERE id = ?', 
+                     (hashed_new_password, user[0]))
+            conn.commit()
+            conn.close()
+            
+            flash('密码更新成功')
+        except Exception as e:
+            flash(f'更新密码失败，请稍后重试: {str(e)}')
+    
+    # 确保静态文件夹存在
+    avatars_dir = os.path.join('static', 'avatars')
+    if not os.path.exists(avatars_dir):
+        os.makedirs(avatars_dir)
 
-        flash('个人资料更新成功')
-    except Exception as e:
-        flash(f'个人资料更新失败，请稍后重试: {str(e)}')
+    # 如果是默认头像，确保默认头像文件存在
+    if session.get('avatar') == 'default-avatar.png':
+        default_avatar_path = os.path.join(avatars_dir, 'default-avatar.png')
+        try:
+            # 如果默认头像不存在或为空，强制创建新的默认头像
+            if not os.path.exists(default_avatar_path) or os.path.getsize(default_avatar_path) == 0:
+                # 创建一个简单的默认头像
+                from PIL import Image, ImageDraw
+                # 使用灰色背景和蓝边框创建默认头像
+                img = Image.new('RGB', (100, 100), color=(230, 230, 230))  # 浅灰色背景
+                d = ImageDraw.Draw(img)
+                # 绘制蓝色圆形
+                d.ellipse((0, 0, 99, 99), fill=(65, 105, 225))  # 蓝色填充
+                # 在中间绘制一个白色小圆形表示人物
+                d.ellipse((25, 15, 75, 65), fill=(255, 255, 255))  # 白色头部
+                # 绘制身体部分
+                d.rectangle((40, 65, 60, 85), fill=(255, 255, 255))  # 白色身体
+                
+                img.save(default_avatar_path)
+                print(f"在个人资料更新时创建了新的默认头像: {default_avatar_path}")
+        except Exception as e:
+            print(f"创建默认头像失败: {str(e)}")
+        # 如果PIL创建失败，至少确保文件存在
+        try:
+            if not os.path.exists(default_avatar_path) or os.path.getsize(default_avatar_path) == 0:
+                with open(default_avatar_path, 'wb') as f:
+                    # 写入一个简单的PNG数据
+                    f.write(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDAT\x08\xd7c\xf8\xff\xff?\x00\x05\xfe\x02\xfe\xdc\xccY\xe7\x00\x00\x00\x00IEND\xaeB`\x82')
+                print(f"创建了小的默认头像文件")
+        except Exception as e2:
+            print(f"创建默认头像文件也失败: {str(e2)}")
     
     return redirect(url_for('profile'))
 
@@ -1396,16 +1661,57 @@ def get_avatar(filename):
     try:
         # 尝试发送请求的头像文件
         avatar_path = os.path.join(app.config['AVATARS_FOLDER'], filename)
-        if os.path.exists(avatar_path) and os.path.getsize(avatar_path) > 0:
-            return send_from_directory(app.config['AVATARS_FOLDER'], filename)
+        print(f"请求头像: {filename}, 完整路径: {avatar_path}")
+        
+        # 检查文件是否存在
+        if os.path.exists(avatar_path):
+            file_size = os.path.getsize(avatar_path)
+            print(f"头像文件存在，大小: {file_size} 字节")
+            
+            if file_size > 0:
+                print(f"返回请求的头像: {filename}")
+                return send_from_directory(app.config['AVATARS_FOLDER'], filename)
+            else:
+                print(f"头像文件为空: {filename}")
         else:
-            # 如果文件不存在或为空，发送默认头像
-            print(f"请求的头像文件不存在或为空: {filename}，使用默认头像")
-            return send_from_directory(app.config['AVATARS_FOLDER'], 'default-avatar.png')
+            print(f"头像文件不存在: {filename}")
+        
+        # 如果执行到这里，说明需要返回默认头像
+        default_avatar = 'default-avatar.png'
+        default_path = os.path.join(app.config['AVATARS_FOLDER'], default_avatar)
+        
+        # 检查默认头像是否存在
+        if not os.path.exists(default_path) or os.path.getsize(default_path) == 0:
+            # 如果默认头像不存在或为空，创建一个新的
+            try:
+                from PIL import Image, ImageDraw
+                img = Image.new('RGB', (100, 100), color=(65, 105, 225))  # 蓝色背景
+                d = ImageDraw.Draw(img)
+                # 绘制白色圆形
+                d.ellipse((25, 15, 75, 65), fill=(255, 255, 255))  # 白色头部
+                # 绘制身体部分
+                d.rectangle((40, 65, 60, 85), fill=(255, 255, 255))  # 白色身体
+                
+                img.save(default_path)
+                print(f"在get_avatar中创建了新的默认头像: {default_path}")
+            except Exception as e:
+                print(f"创建默认头像失败: {str(e)}")
+        
+        print(f"返回默认头像: {default_avatar}")
+        return send_from_directory(app.config['AVATARS_FOLDER'], default_avatar)
     except Exception as e:
         print(f"头像访问错误: {str(e)}")
-        # 发生错误时也返回默认头像
-        return send_from_directory(app.config['AVATARS_FOLDER'], 'default-avatar.png')
+        # 发生严重错误时，返回一个内联的SVG头像
+        svg_avatar = '''
+        <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="50" fill="#4169E1"/>
+            <circle cx="50" cy="40" r="25" fill="#FFFFFF"/>
+            <rect x="40" y="65" width="20" height="20" fill="#FFFFFF"/>
+        </svg>
+        '''
+        response = make_response(svg_avatar)
+        response.headers['Content-Type'] = 'image/svg+xml'
+        return response
 
 # 初始化应用
 def init_app():
@@ -1455,33 +1761,46 @@ def init_app():
         os.makedirs(avatars_dir)
         print(f"创建头像文件夹: {avatars_dir}")
     
-    # 确保默认头像文件存在
+    # 强制更新默认头像文件
     default_avatar_path = os.path.join(avatars_dir, 'default-avatar.png')
-    if not os.path.exists(default_avatar_path) or os.path.getsize(default_avatar_path) == 0:
-        try:
-            # 创建一个简单的默认头像
-            from PIL import Image, ImageDraw
-            img = Image.new('RGB', (100, 100), color = (73, 109, 137))
-            d = ImageDraw.Draw(img)
-            d.ellipse((0, 0, 100, 100), fill=(255, 255, 255))
-            img.save(default_avatar_path)
-            print(f"创建了新的默认头像: {default_avatar_path}")
-        except Exception as e:
-            # 如果PIL创建失败，至少创建一个空文件
-            with open(default_avatar_path, 'w') as f:
-                f.write('')
-            print(f"创建默认头像失败: {str(e)}")
+    try:
+        # 删除现有的默认头像
+        if os.path.exists(default_avatar_path):
+            os.remove(default_avatar_path)
+            print(f"删除现有的默认头像文件: {default_avatar_path}")
+        
+        # 创建一个简单的默认头像
+        from PIL import Image, ImageDraw
+        # 使用灰色背景和蓝边框创建默认头像
+        img = Image.new('RGB', (100, 100), color=(230, 230, 230))  # 浅灰色背景
+        d = ImageDraw.Draw(img)
+        # 绘制蓝色圆形
+        d.ellipse((0, 0, 99, 99), fill=(65, 105, 225))  # 蓝色填充
+        # 在中间绘制一个白色小圆形表示人物
+        d.ellipse((25, 15, 75, 65), fill=(255, 255, 255))  # 白色头部
+        # 绘制身体部分
+        d.rectangle((40, 65, 60, 85), fill=(255, 255, 255))  # 白色身体
+        
+        img.save(default_avatar_path)
+        print(f"更新了默认头像: {default_avatar_path}")
+    except Exception as e:
+        print(f"创建默认头像失败: {str(e)}")
+        # 如果PIL创建失败，至少创建一个空文件
+        with open(default_avatar_path, 'w') as f:
+            f.write('')
+        print(f"创建默认头像失败: {str(e)}")
     
     # 确保系统预设头像存在
     system_avatars = {
-        '764a6dd107d9a82d754abfa52685d8.png': (200, 0, 0),  # 红色系
-        '888cf5dc5912c9211180789fa4db24.png': (0, 0, 200),   # 蓝色系
-        'transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png': (0, 200, 0)  # 绿色系
+        'b4265bcc71b199c3223c8090a8bda350.png': (200, 0, 0),  # 红色系
+        '5c5c70487e68968ccb5fa2cdb4bde9a7.png': (0, 0, 200),   # 蓝色系
+        '342cbbb4-2f57-40b7-8b21-a29766f80fc3.png': (0, 200, 0)  # 绿色系
     }
     
     for avatar_file, color in system_avatars.items():
         avatar_path = os.path.join(avatars_dir, avatar_file)
-        if not os.path.exists(avatar_path) or os.path.getsize(avatar_path) == 0:
+        # 只在文件不存在时才创建，不修改已存在的系统头像
+        if not os.path.exists(avatar_path):
             try:
                 # 如果系统预设头像不存在，创建一个简单的替代头像
                 from PIL import Image, ImageDraw
@@ -1489,9 +1808,11 @@ def init_app():
                 d = ImageDraw.Draw(img)
                 d.ellipse((10, 10, 90, 90), fill=(255, 255, 255))
                 img.save(avatar_path)
-                print(f"创建了替代系统头像: {avatar_path}")
+                print(f"创建了缺失的系统头像: {avatar_path}")
             except Exception as e:
                 print(f"创建系统头像失败 {avatar_file}: {str(e)}")
+        else:
+            print(f"系统头像已存在，保持原样: {avatar_file}")
 
 # 在应用启动时初始化
 init_app()

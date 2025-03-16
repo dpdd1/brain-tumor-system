@@ -268,22 +268,47 @@
             z-index: 0;
         }
         
-        /* 头像选择样式 */
+        /* 注册页面头像样式 */
         .avatar-preview {
+            position: relative;
             width: 110px;
             height: 110px;
             border-radius: 50%;
-            margin: 0 auto 20px;
+            margin: 0 auto 15px;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
-            border: 4px solid #2196f3;
-            background-size: cover;
-            background-position: center;
             background-color: #f5f5f5;
-            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            border: 4px solid #2196f3;
+            overflow: visible;
+        }
+        
+        /* 头像上传按钮样式 */
+        .avatar-upload-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #4caf50;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 10;
+            border: 2px solid white;
+            font-size: 1.2rem;
+        }
+        
+        .avatar-upload-btn:hover {
+            background-color: #43a047;
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
         }
         
         .avatar-selection {
@@ -329,25 +354,35 @@
         
         .avatar-upload {
             text-align: center;
-            margin-top: 15px;
+            margin-top: 25px;
+            width: 100%;
+            padding: 0 15px;
         }
         
+        /* 完全重新设计上传按钮 */
         .avatar-label {
             cursor: pointer;
             color: #2196f3;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            font-weight: 500;
             transition: all 0.3s ease;
-            display: inline-block;
-            padding: 8px 14px;
+            display: block;
+            padding: 12px 15px;
             border-radius: 8px;
-            background-color: #f0f7ff;
-            border: 1px solid #d0e5ff;
+            background-color: #e3f2fd;
+            border: 1px solid #bbdefb;
             text-align: center;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            max-width: 210px;
+            margin: 0 auto;
+        }
+        
+        .avatar-label i {
+            margin-right: 6px;
         }
         
         .avatar-label:hover {
-            background-color: #e3f2fd;
+            background-color: #bbdefb;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transform: translateY(-2px);
         }
@@ -748,38 +783,36 @@
             <h1>创建新账号</h1>
         </div>
         <div class="auth-form">
-            <form id="registerForm" enctype="multipart/form-data">
+            <form id="registerForm" action="{{ url_for('register') }}" method="POST" enctype="multipart/form-data">
                 <div class="register-form">
                     <!-- 左侧：头像选择 -->
                     <div class="register-left">
-                        <div class="avatar-preview" id="avatar-preview"></div>
+                        <div class="avatar-preview" id="avatar-preview">
+                            <label for="avatar-input" class="avatar-upload-btn" title="上传自定义头像">
+                                <i class="fas fa-plus"></i>
+                            </label>
+                        </div>
+                        <input type="file" id="avatar-input" name="avatar" 
+                               accept="image/png, image/jpeg, image/jpg, image/webp" 
+                               onchange="previewAvatar(this)" style="display: none;">
                         <div class="register-divider"><span>选择头像</span></div>
                         
                         <div class="avatar-selection">
                             <div class="avatar-option selected" data-avatar="doctor-1">
                                 <div class="doctor-avatar">
-                                    <img src="{{ url_for('get_avatar', filename='764a6dd107d9a82d754abfa52685d8.png') }}" alt="医生A" style="width:100%; height:100%; object-fit:cover;">
+                                    <img src="{{ url_for('get_avatar', filename='b4265bcc71b199c3223c8090a8bda350.png') }}" alt="医生A" style="width:100%; height:100%; object-fit:cover;">
                                 </div>
                             </div>
                             <div class="avatar-option" data-avatar="doctor-2">
                                 <div class="doctor-avatar">
-                                    <img src="{{ url_for('get_avatar', filename='888cf5dc5912c9211180789fa4db24.png') }}" alt="医生B" style="width:100%; height:100%; object-fit:cover;">
+                                    <img src="{{ url_for('get_avatar', filename='5c5c70487e68968ccb5fa2cdb4bde9a7.png') }}" alt="医生B" style="width:100%; height:100%; object-fit:cover;">
                                 </div>
                             </div>
                             <div class="avatar-option" data-avatar="doctor-3">
                                 <div class="doctor-avatar">
-                                    <img src="{{ url_for('get_avatar', filename='transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png') }}" alt="医生C" style="width:100%; height:100%; object-fit:cover;">
+                                    <img src="{{ url_for('get_avatar', filename='342cbbb4-2f57-40b7-8b21-a29766f80fc3.png') }}" alt="医生C" style="width:100%; height:100%; object-fit:cover;">
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="avatar-upload">
-                            <label for="avatar-input" class="avatar-label">
-                                <i class="fas fa-upload"></i> 上传自定义头像
-                            </label>
-                            <input type="file" id="avatar-input" name="avatar" 
-                                   accept="image/png, image/jpeg, image/jpg, image/webp" 
-                                   onchange="previewAvatar(this)" style="display: none;">
                         </div>
                     </div>
                     
@@ -821,7 +854,7 @@
                 <input type="hidden" id="selected-system-avatar" name="selected_system_avatar" value="doctor-1">
                 
                 <div class="form-group" style="margin-top: 20px;">
-                    <button type="button" id="registerBtn" class="btn-primary">
+                    <button type="submit" class="btn-primary">
                         <i class="fas fa-user-plus"></i> 创建账号
                     </button>
                 </div>
@@ -849,10 +882,9 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 const avatarPreview = document.getElementById('avatar-preview');
-                
-                // 清空容器
+                // 保存上传按钮
+                const uploadBtn = avatarPreview.querySelector('.avatar-upload-btn');
                 avatarPreview.innerHTML = '';
-                avatarPreview.style.background = 'none';
                 
                 // 创建新的图片元素
                 const img = document.createElement('img');
@@ -865,6 +897,11 @@
                 
                 // 添加图片到预览容器
                 avatarPreview.appendChild(img);
+                
+                // 重新添加上传按钮
+                if (uploadBtn) {
+                    avatarPreview.appendChild(uploadBtn);
+                }
                 
                 // 取消其他头像的选择
                 document.querySelectorAll('.avatar-option').forEach(option => {
@@ -939,8 +976,8 @@
             document.getElementById('loginContainer').style.display = 'block';
         });
         
-        // 注册表单提交
-        document.getElementById('registerBtn').addEventListener('click', function() {
+        // 注册表单提交验证
+        document.getElementById('registerForm').addEventListener('submit', function(event) {
             const username = document.getElementById('reg-username').value;
             const password = document.getElementById('reg-password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
@@ -949,62 +986,18 @@
             // 验证表单
             if (!username || !password || !confirmPassword) {
                 messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 请填写所有必填字段</div>';
-                return;
+                event.preventDefault();
+                return false;
             }
             
             if (password !== confirmPassword) {
                 messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 两次输入的密码不一致</div>';
-                return;
+                event.preventDefault();
+                return false;
             }
             
-            // 创建FormData对象，包含文件上传
-            const formData = new FormData(document.getElementById('registerForm'));
-            
-            // 确保头像信息被正确添加到表单数据
-            const selectedAvatar = document.getElementById('selected-system-avatar').value;
-            if (selectedAvatar) {
-                formData.append('selected_system_avatar', selectedAvatar);
-                console.log('添加系统头像: ' + selectedAvatar);
-            }
-            
-            // 检查是否有自定义头像上传
-            const fileInput = document.getElementById('avatar-input');
-            if (fileInput.files && fileInput.files[0]) {
-                console.log('添加自定义头像');
-                // FormData会自动处理文件上传，无需额外代码
-            }
-            
-            // 发送AJAX请求
-            fetch('/register', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.location.href = response.url;
-                } else {
-                    return response.text();
-                }
-            })
-            .then(html => {
-                if (html) {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const flashMessages = doc.querySelectorAll('.alert');
-                    if (flashMessages.length > 0) {
-                        messageDiv.innerHTML = '';
-                        flashMessages.forEach(message => {
-                            messageDiv.appendChild(message.cloneNode(true));
-                        });
-                    } else {
-                        window.location.href = '/login';
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                messageDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> 注册失败，请稍后重试</div>';
-            });
+            // 一切正常，允许表单提交
+            return true;
         });
         
         // 粒子效果配置并添加鼠标交互
@@ -1126,10 +1119,9 @@
     // 更新头像预览
     function updateAvatarPreview(avatarType) {
         const avatarPreview = document.getElementById('avatar-preview');
-        
-        // 清空内容
+        // 保存上传按钮
+        const uploadBtn = avatarPreview.querySelector('.avatar-upload-btn');
         avatarPreview.innerHTML = '';
-        avatarPreview.style.background = 'none';
         
         // 创建新的图片元素
         const img = document.createElement('img');
@@ -1139,20 +1131,25 @@
         img.style.borderRadius = '50%';
         
         if (avatarType === 'doctor-1') {
-            img.src = "{{ url_for('get_avatar', filename='764a6dd107d9a82d754abfa52685d8.png') }}";
+            img.src = "{{ url_for('get_avatar', filename='b4265bcc71b199c3223c8090a8bda350.png') }}";
             img.alt = "医生A";
         } 
         else if (avatarType === 'doctor-2') {
-            img.src = "{{ url_for('get_avatar', filename='888cf5dc5912c9211180789fa4db24.png') }}";
+            img.src = "{{ url_for('get_avatar', filename='5c5c70487e68968ccb5fa2cdb4bde9a7.png') }}";
             img.alt = "医生B";
         }
         else if (avatarType === 'doctor-3') {
-            img.src = "{{ url_for('get_avatar', filename='transparent-doctors-day-serious-doctor-in-white-coat-glasses-blue-1710868013235.png') }}";
+            img.src = "{{ url_for('get_avatar', filename='342cbbb4-2f57-40b7-8b21-a29766f80fc3.png') }}";
             img.alt = "医生C";
         }
         
         // 添加图片到预览容器
         avatarPreview.appendChild(img);
+        
+        // 重新添加上传按钮
+        if (uploadBtn) {
+            avatarPreview.appendChild(uploadBtn);
+        }
         
         console.log("已更新头像: " + avatarType); // 调试信息
     }

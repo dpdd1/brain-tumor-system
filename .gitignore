@@ -1,36 +1,46 @@
+# Python编译文件
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# IDE files
+# 虚拟环境
+brain_env/
+env/
+venv/
+ENV/
+
+# IDE配置文件
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Project specific
-static/results/*
+# 项目临时文件
 static/uploads/*
-!static/results/.gitkeep
+static/results/*
 !static/uploads/.gitkeep
+!static/results/.gitkeep
 
-# Database
+# 数据库文件
 *.db
 *.sqlite3
+
+# 临时文件
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+
+# 测试文件
+test*.py
+test*.html
+temp*.py
+*_temp.py
+
+# 杂项
+.env
+.coverage
+htmlcov/
+clean_avatars.py
