@@ -6,6 +6,117 @@
     <title>脑肿瘤医学诊断平台 - 肿瘤诊断</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 选择文件按钮样式 */
+        .file-upload-btn label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            color: #007bff;
+            border: 1px solid #e0e0e0;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            height: 45px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        .file-upload-btn label:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .file-upload-btn label i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        
+        /* 开始上传按钮样式 */
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background-color: #0069d9;
+        }
+        
+        .btn-primary:disabled {
+            background-color: #6c757d;
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary i {
+            margin-right: 8px;
+        }
+        
+        /* 清除按钮样式 */
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+            border: none;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .btn-secondary i {
+            margin-right: 8px;
+        }
+        
+        /* 上传控件布局 */
+        .upload-controls form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .action-buttons button {
+            flex: 1;
+        }
+        
+        .file-upload-btn {
+            width: 100%;
+        }
+    </style>
 </head>
 <body class="inner-page">
     <!-- 页面背景效果 -->
@@ -145,6 +256,35 @@
     <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const fileUpload = document.getElementById('file-upload');
+            const submitBtn = document.querySelector('.btn-primary');
+            let selectedFile = null;
+            
+            // 初始状态下禁用上传按钮
+            submitBtn.disabled = true;
+            
+            // 文件选择处理
+            fileUpload.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    // 验证文件类型
+                    const file = this.files[0];
+                    if (!['image/jpg','image/png', 'image/jpeg'].includes(file.type)) {
+                        alert('支持JPG、PNG和JPEG格式的图片');
+                        this.value = '';
+                        submitBtn.disabled = true;
+                        return;
+                    }
+                    
+                    // 启用上传按钮
+                    selectedFile = file;
+                    submitBtn.disabled = false;
+                } else {
+                    // 如果没有选择文件，禁用上传按钮
+                    submitBtn.disabled = true;
+                }
+            });
+            
             // 清除上传图片
             document.getElementById('clear-upload').addEventListener('click', function() {
                 document.getElementById('file-upload').value = '';
@@ -168,6 +308,10 @@
                 document.getElementById('confidence').querySelector('span').textContent = '0%';
                 document.getElementById('confidence-fill').style.width = '0%';
                 document.getElementById('recommendation').textContent = '无需进一步治疗，建议定期复查。';
+                
+                // 禁用上传按钮
+                submitBtn.disabled = true;
+                selectedFile = null;
             });
             
             // 添加卡片动画效果

@@ -6,6 +6,163 @@
     <title>脑肿瘤医学诊断平台 - 肿瘤分割</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 选择文件按钮样式 */
+        .file-upload-btn label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            color: #007bff;
+            border: 1px solid #e0e0e0;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            height: 45px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .file-upload-btn label:hover {
+            background-color: #f8f9fa;
+        }
+
+        .file-upload-btn label i {
+            margin-right: 8px;
+            color: #007bff;
+        }
+        
+        /* 覆盖层样式修改 */
+        .preview-overlay[style*="opacity: 0"],
+        .image-overlay[style*="opacity: 0"] {
+            display: none !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+        }
+        
+        /* 图像容器样式 */
+        .upload-preview img,
+        .result-image-wrapper img {
+            position: relative;
+            z-index: 5;
+        }
+        
+        .preview-overlay,
+        .image-overlay {
+            z-index: 4;
+        }
+
+        /* 开始分割按钮样式 */
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #0069d9;
+        }
+
+        .btn-primary:disabled {
+            background-color: #6c757d;
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .btn-primary i {
+            margin-right: 8px;
+        }
+
+        /* 清除按钮样式 */
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+            border: none;
+            padding: 0 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 45px;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+
+        .btn-secondary i {
+            margin-right: 8px;
+        }
+
+        /* 上传控件布局 */
+        .upload-section form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .file-upload-btn {
+            width: 100%;
+        }
+
+        /* 阈值警告提示样式 */
+        .threshold-warning {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background-color: #fff8e6;
+            border: 1px solid #ffe0b2;
+            color: #ff9800;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .threshold-warning i {
+            margin-right: 5px;
+            font-size: 14px;
+        }
+        
+        /* 参数调整区域相对定位 */
+        .segmentation-controls-container {
+            position: relative;
+        }
+    </style>
 </head>
 <body class="inner-page">
     <!-- 页面背景效果 -->
@@ -110,6 +267,9 @@
                 <!-- 参数调整区域 -->
                 <div class="segmentation-controls-container card-section">
                     <h3 class="controls-title"><i class="fas fa-sliders-h"></i> 分割参数调整</h3>
+                    <div class="threshold-warning">
+                        <i class="fas fa-exclamation-circle"></i> 如果阈值过高，将无法比对分割结果图
+                    </div>
                     <div class="segmentation-controls">
                         <div class="control-label">
                             <i class="fas fa-percentage"></i>
@@ -185,6 +345,35 @@
     <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const fileUpload = document.getElementById('file-upload');
+            const submitBtn = document.querySelector('.btn-primary');
+            let selectedFile = null;
+
+            // 初始状态下禁用分割按钮
+            submitBtn.disabled = true;
+
+            // 文件选择处理
+            fileUpload.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    // 验证文件类型
+                    const file = this.files[0];
+                    if (!['image/jpg','image/png', 'image/jpeg'].includes(file.type)) {
+                        alert('支持JPG、PNG和JPEG格式的图片');
+                        this.value = '';
+                        submitBtn.disabled = true;
+                        return;
+                    }
+
+                    // 启用分割按钮
+                    selectedFile = file;
+                    submitBtn.disabled = false;
+                } else {
+                    // 如果没有选择文件，禁用分割按钮
+                    submitBtn.disabled = true;
+                }
+            });
+
             // 滑块值显示
             const thresholdSlider = document.getElementById('threshold-slider');
             const thresholdValue = document.querySelector('.threshold-value');
@@ -223,6 +412,10 @@
                 document.querySelectorAll('.image-overlay').forEach(overlay => {
                     overlay.style.opacity = '1';
                 });
+                
+                // 禁用分割按钮
+                submitBtn.disabled = true;
+                selectedFile = null;
             });
             
             // 添加卡片动画效果
@@ -369,10 +562,19 @@
             const maskImage = document.getElementById('mask-image');
             const overlayImage = document.getElementById('overlay-image');
             
-            // 添加加载指示器
-            segmentedImage.parentElement.querySelector('.preview-overlay').style.opacity = '1';
-            maskImage.parentElement.querySelector('.image-overlay').style.opacity = '1';
-            overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '1';
+            // 创建临时加载指示器
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'loading-indicator';
+            loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+            loadingIndicator.style.position = 'absolute';
+            loadingIndicator.style.top = '10px';
+            loadingIndicator.style.right = '10px';
+            loadingIndicator.style.background = 'rgba(255,255,255,0.8)';
+            loadingIndicator.style.padding = '5px 10px';
+            loadingIndicator.style.borderRadius = '5px';
+            loadingIndicator.style.zIndex = '100';
+            
+            document.querySelector('.segmentation-controls-container').appendChild(loadingIndicator);
             
             // 发送AJAX请求
             fetch('/adjust_image', {
@@ -394,26 +596,45 @@
                     maskImage.src = `/static/results/${data.mask_image}`;
                     overlayImage.src = `/static/results/${data.overlay_image}`;
                     
-                    // 隐藏加载指示器
-                    maskImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
-                    overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
-                } else {
-                    alert('调整参数失败: ' + data.message);
+                    // 为新加载的图像添加onload事件
+                    maskImage.onload = function() {
+                        const overlay = this.parentElement.querySelector('.image-overlay');
+                        if (overlay) {
+                            overlay.style.opacity = '0';
+                        }
+                    };
                     
-                    // 隐藏加载指示器
-                    segmentedImage.parentElement.querySelector('.preview-overlay').style.opacity = '0';
-                    maskImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
-                    overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+                    overlayImage.onload = function() {
+                        const overlay = this.parentElement.querySelector('.image-overlay');
+                        if (overlay) {
+                            overlay.style.opacity = '0';
+                        }
+                    };
+                } else {
+                    // 不显示弹窗提示，只在控制台输出错误信息
+                    console.log('调整参数失败:', data.message);
+                    
+                    // 如果是阈值相关的错误，可以在这里处理
+                    if (data.message && data.message.includes('阈值')) {
+                        // 显示覆盖层，表示没有结果
+                        maskImage.parentElement.querySelector('.image-overlay').style.opacity = '1';
+                        overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '1';
+                        
+                        // 清空图片源
+                        maskImage.src = "";
+                        overlayImage.src = "";
+                    }
                 }
+                
+                // 移除加载指示器
+                loadingIndicator.remove();
             })
             .catch(error => {
                 console.error('调整参数时出错:', error);
-                alert('调整参数时出错，请稍后重试');
+                // 不显示弹窗提示，只在控制台输出错误信息
                 
-                // 隐藏加载指示器
-                segmentedImage.parentElement.querySelector('.preview-overlay').style.opacity = '0';
-                maskImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
-                overlayImage.parentElement.querySelector('.image-overlay').style.opacity = '0';
+                // 移除加载指示器
+                loadingIndicator.remove();
             });
         }
     </script>
