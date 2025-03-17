@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脑肿瘤医学诊断平台 - 视频检测</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 视频检测特定样式 */
+        .video-detection-content {
+            display: grid;
+            grid-template-columns: 65% 35%;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        /* 小屏幕响应式调整 */
+        @media (max-width: 992px) {
+            .video-detection-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-section {
+                margin-top: 20px;
+            }
+            
+            .results-container {
+                max-height: 400px;
+            }
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 75%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+            margin-top: 20px;
+        }
+
+        #videoFeed,
+        #recordedVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 100;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+
+        .status-dot.active {
+            background: #4CAF50;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* 结果面板样式调整 */
+        .results-section {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .results-header h3 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+
+        .results-container {
+            flex: 1;
+            height: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .result-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border-left: 4px solid #2196F3;
+            font-size: 0.95rem;
+        }
+
+        .detection-group {
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .detection-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .detection-item {
+            margin-bottom: 8px;
+        }
+
+        .detection-class {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .class-name {
+            font-weight: 500;
+        }
+
+        .confidence {
+            color: #666;
+        }
+
+        .confidence-bar {
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .confidence-progress {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .result-time {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .error-message {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f44336;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .retry-button {
+            background: #2196F3;
+            margin-left: 15px;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .video-section {
+            position: relative;
+        }
+        
+        /* 右侧结果面板样式增强 */
+        .results-section .btn-secondary {
+            padding: 5px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .results-section .results-header i {
+            margin-right: 5px;
+            color: #2196F3;
+        }
+        
+        /* 优化录制状态显示 */
+        #saveStatus {
+            display: none;
+            margin-left: 5px;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body class="inner-page">
+    <!-- 页面背景效果 -->
+    <div class="page-background">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+        <div class="particles-container" id="particles-js"></div>
+    </div>
+
+    <header>
+        <div class="logo">
+            <i class="fas fa-brain logo-icon"></i>
+            <span class="logo-title">脑肿瘤医学诊断平台</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{{ url_for('diagnosis') }}"><i class="fas fa-search"></i> 肿瘤检测</a></li>
+                <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
+                <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
+                <li class="active"><a href="{{ url_for('video_detection') }}"><i class="fas fa-video"></i> 视频检测</a></li>
+                <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
+                <li class="user-profile">
+                    <img src="{{ url_for('get_avatar', filename=session.get('avatar', 'default-avatar.png')) }}" alt="用户头像" class="user-avatar">
+                    <span class="user-name">{{ session.get('username', '用户') }}</span>
+                    <div class="user-dropdown">
+                        <a href="{{ url_for('profile') }}" class="user-dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>个人资料</span>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="user-dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>退出登录</span>
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="video-detection-container card-container">
+            <div class="card-header">
+                <i class="fas fa-video card-icon"></i>
+                <h2>脑肿瘤视频检测</h2>
+            </div>
+            
+            <div class="video-detection-content">
+                <div class="video-section card-section">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span id="statusText">等待开始</span>
+                        <span id="saveStatus" class="save-status">✓ 已保存</span>
+                    </div>
+
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="loading-spinner"></div>
+                    </div>
+
+                    <div class="error-message" id="errorMessage">
+                        <span>录制视频加载失败，请重试</span>
+                        <span class="retry-button" onclick="retryVideoLoad()">重试</span>
+                    </div>
+
+                    <div class="controls">
+                        <button class="btn-primary" id="startBtn" onclick="toggleRecording(true)">
+                            <i class="fas fa-play"></i> 开始实时分析
+                        </button>
+                        <button class="btn-danger" id="stopBtn" onclick="toggleRecording(false)" disabled>
+                            <i class="fas fa-stop"></i> 停止并保存
+                        </button>
+                    </div>
+
+                    <div class="video-wrapper">
+                        <img id="videoFeed" src="{{ url_for('video_feed') }}" alt="实时视频流">
+                        <video id="recordedVideo" class="video-player" controls style="display: none;"></video>
+                    </div>
+                </div>
+
+                <div class="results-section card-section">
+                    <div class="results-header">
+                        <h3><i class="fas fa-chart-line"></i> 实时检测结果</h3>
+                        <button class="btn-secondary" onclick="clearResults()"><i class="fas fa-trash"></i> 清空记录</button>
+                    </div>
+                    <div class="results-container" id="resultsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
+    <script>
+        let isRecording = false;
+        let updateInterval;
+        let currentVideoUrl = null;
+        const statusElements = {
+            dot: document.querySelector('.status-dot'),
+            text: document.getElementById('statusText'),
+            save: document.getElementById('saveStatus')
+        };
+        const videoElements = {
+            live: document.getElementById('videoFeed'),
+            recorded: document.getElementById('recordedVideo')
+        };
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // 添加卡片动画效果
+        document.addEventListener('DOMContentLoaded', function() {
+            const cardSections = document.querySelectorAll('.card-section');
+            cardSections.forEach((section, index) => {
+                setTimeout(() => {
+                    section.classList.add('fade-in');
+                }, index * 100);
+            });
+        });
+
+        async function toggleRecording(start) {
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            if(start) {
+                startBtn.disabled = true;
+                showLoading();
+                try {
+                    const response = await controlRequest('start');
+                    if(response.status === 'RECORDING') {
+                        isRecording = true;
+                        stopBtn.disabled = false;
+                        updateStatus('recording');
+                        hideError();
+                        videoElements.recorded.style.display = 'none';
+                        videoElements.live.style.display = 'block';
+                        startUpdateInterval();
+                    }
+                } catch(error) {
+                    showError(`启动失败: ${error}`);
+                } finally {
+                    hideLoading();
+                    startBtn.disabled = false;
+                }
+            } else {
+                stopBtn.disabled = true;
+                showLoading();
+                try {
+                    const response = await controlRequest('stop');
+                    if(response.status === 'STOPPED') {
+                        isRecording = false;
+                        updateStatus('stopped');
+                        stopUpdateInterval();
+                        currentVideoUrl = response.video_url;
+                        handleRecordedVideo(currentVideoUrl);
+                    }
+                } catch(error) {
+                    showError(`停止失败: ${error}`);
+                } finally {
+                    hideLoading();
+                    stopBtn.disabled = false;
+                }
+            }
+        }
+
+        async function controlRequest(action) {
+            const response = await fetch('/video_control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ action })
+            });
+            if(!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || '请求失败');
+            }
+            return response.json();
+        }
+
+        function updateStatus(state) {
+            statusElements.dot.classList.remove('active');
+            statusElements.save.style.display = 'none';
+
+            switch(state) {
+                case 'recording':
+                    statusElements.text.textContent = '正在录制';
+                    statusElements.dot.classList.add('active');
+                    break;
+                case 'stopped':
+                    statusElements.text.textContent = '录制已停止';
+                    statusElements.save.style.display = 'inline';
+                    setTimeout(() => statusElements.save.style.display = 'none', 3000);
+                    break;
+                default:
+                    statusElements.text.textContent = '等待开始';
+            }
+        }
+
+        function handleRecordedVideo(url) {
+            videoElements.recorded.style.display = 'block';
+            videoElements.live.style.display = 'none';
+            videoElements.recorded.src = `${url}?t=${Date.now()}`;
+
+            videoElements.recorded.onerror = () => {
+                showError('视频加载失败，请重试');
+                videoElements.recorded.style.display = 'none';
+                videoElements.live.style.display = 'block';
+            };
+
+            videoElements.recorded.onloadeddata = () => {
+                videoElements.recorded.play().catch(() => {
+                    console.log('需要用户交互才能自动播放');
+                });
+            };
+
+            videoElements.recorded.load();
+        }
+
+        function retryVideoLoad() {
+            if(currentVideoUrl) {
+                hideError();
+                showLoading();
+                handleRecordedVideo(currentVideoUrl);
+                setTimeout(hideLoading, 1000);
+            }
+        }
+
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorMessage.querySelector('span:first-child').textContent = message;
+            errorMessage.style.display = 'flex';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        function startUpdateInterval() {
+            updateInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/get_video_results');
+                    if(response.ok) {
+                        const results = await response.json();
+                        renderResults(results);
+                    }
+                } catch(error) {
+                    console.error('获取结果失败:', error);
+                }
+            }, 500);
+        }
+
+        function stopUpdateInterval() {
+            clearInterval(updateInterval);
+            updateInterval = null;
+        }
+
+        function renderResults(results) {
+            const container = document.getElementById('resultsContainer');
+            const html = results.reverse().map(result => `
+                <div class="result-item">
+                    <div class="result-time">${new Date(result.timestamp * 1000).toLocaleString()}</div>
+                    ${renderDetection(result.classification, '肿瘤分类检测')}
+                    ${renderDetection(result.malignancy, '良恶性分析')}
+                </div>
+            `).join('');
+            container.innerHTML = html;
+            container.scrollTop = 0;
+        }
+
+        function renderDetection(items, title) {
+            if(!items?.length) return '<div class="detection-group">无检测结果</div>';
+            return `
+                <div class="detection-group">
+                    <div class="detection-title">${title}</div>
+                    ${items.map(item => `
+                        <div class="detection-item">
+                            <div class="detection-class">
+                                <span class="class-name">${item.class}</span>
+                                <span class="confidence">${(item.confidence * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-progress"
+                                    style="width: ${item.confidence * 100}%;
+                                           background: ${getColorByClass(item.class)}">
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function getColorByClass(className) {
+            const colorMap = {
+                '胶质瘤': '#2196F3',
+                '脑膜瘤': '#4CAF50',
+                '垂体瘤': '#9C27B0',
+                '无肿瘤': '#FF9800',
+                '良性': '#4CAF50',
+                '恶性': '#f44336'
+            };
+            return colorMap[className] || '#607D8B';
+        }
+
+        function clearResults() {
+            document.getElementById('resultsContainer').innerHTML = '';
+        }
+
+        // 视频播放结束处理
+        videoElements.recorded.addEventListener('ended', () => {
+            videoElements.live.style.display = 'block';
+            videoElements.recorded.style.display = 'none';
+            updateStatus('default');
+        });
+    </script>
+</body>
+</html> 

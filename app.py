@@ -137,9 +137,9 @@ DEEPSEEK_HEADERS = {
 def load_models():
     global detection_model, segmentation_model, classification_model
     try:
-        detection_model = YOLO('D:/demo/brain/models/detection.pt')
-        segmentation_model = YOLO('D:/demo/brain/models/segmentation.pt')
-        classification_model = YOLO('D:/demo/brain/models/classification.pt')
+        detection_model = YOLO('models/detection.pt')
+        segmentation_model = YOLO('models/segmentation.pt')
+        classification_model = YOLO('models/classification.pt')
         print("YOLOv11模型加载成功")
     except Exception as e:
         print(f"模型加载失败: {str(e)}")
@@ -2062,7 +2062,7 @@ def video_detection():
     # 确保会话中有最新的用户头像
     ensure_avatar_in_session()
     
-    return render_template('index3.html')
+    return render_template('video.html')
 
 
 @app.route('/video_feed')
