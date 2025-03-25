@@ -6,6 +6,156 @@
     <title>脑肿瘤医学诊断平台 - 治疗记录</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* 加载指示器样式 */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            color: #2196F3;
+        }
+        
+        .loading-indicator i {
+            font-size: 20px;
+        }
+        
+        /* 确保records-table是相对定位，以便加载指示器能够正确定位 */
+        .records-table {
+            position: relative;
+        }
+        
+        /* 处理结果描述区域样式 */
+        .record-details-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .record-details-section h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #2196F3;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .detection-results-container {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .loading-results {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #888;
+            font-style: italic;
+            padding: 10px 0;
+        }
+        
+        .detection-result-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #eee;
+        }
+        
+        .detection-result-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .result-label {
+            font-weight: bold;
+            color: #555;
+            margin-right: 5px;
+        }
+        
+        .result-value {
+            color: #333;
+        }
+        
+        .result-confidence {
+            font-size: 13px;
+            color: #888;
+            margin-left: 5px;
+        }
+        
+        .probability-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        
+        .probability-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 3px;
+            transition: width 0.5s ease-out;
+        }
+        
+        .probability-fill.malignant {
+            background: linear-gradient(90deg, #FF5722, #F44336);
+        }
+        
+        .probability-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .probability-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 2px;
+        }
+        
+        .result-status {
+            color: #333;
+        }
+        
+        .result-status.detected {
+            color: #F44336;
+        }
+        
+        .result-status.not-detected {
+            color: #4CAF50;
+        }
+        
+        .result-description {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .no-results {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            font-style: italic;
+            padding: 15px 0;
+        }
+    </style>
 </head>
 <body class="inner-page">
     <!-- 页面背景效果 -->
@@ -89,7 +239,7 @@
                                 <div class="file-preview" id="initial-image-preview"></div>
                             </div>
                             <div class="form-group">
-                                <label for="mask-image"><i class="fas fa-mask"></i> 掩膜图片：</label>
+                                <label for="mask-image"><i class="fas fa-mask"></i> 处理结果：</label>
                                 <div class="file-input-container">
                                     <input type="file" id="mask-image" name="mask_image" accept=".jpg,.jpeg,.png" required>
                                     <div class="file-input-label">
@@ -116,9 +266,11 @@
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="select-all" onclick="toggleSelectAll()"></th>
-                                <th><i class="fas fa-image"></i> 初始图片</th>
-                                <th><i class="fas fa-layer-group"></i> 掩膜图片</th>
+                                <th><i class="fas fa-hashtag"></i> 序号</th>
+                                <th><i class="fas fa-image"></i> 原始图像</th>
+                                <th><i class="fas fa-layer-group"></i> 处理结果</th>
                                 <th><i class="fas fa-calendar-alt"></i> 检测时间</th>
+                                <th><i class="fas fa-tag"></i> 页面名称</th>
                                 <th><i class="fas fa-cogs"></i> 操作</th>
                             </tr>
                         </thead>
@@ -131,6 +283,7 @@
                                         <label for="record-{{ record.id }}"></label>
                                     </div>
                                 </td>
+                                <td class="record-sequence">{{ record.sequence_number }}</td>
                                 <td>
                                     <div class="image-thumbnail-container">
                                         <img src="{{ url_for('static', filename=record.initial_image) }}" alt="脑部扫描图像" class="record-thumbnail">
@@ -148,6 +301,7 @@
                                     </div>
                                 </td>
                                 <td>{{ record.detection_date }}</td>
+                                <td>{{ record.page_name | default('手动添加') }}</td>
                                 <td>
                                     <div class="action-buttons">
                                         <button class="btn-view" onclick="viewRecord({{ record.id }})"><i class="fas fa-eye"></i> 查看</button>
@@ -158,7 +312,7 @@
                             {% endfor %}
                             {% if not records %}
                             <tr>
-                                <td colspan="5" class="no-records">
+                                <td colspan="7" class="no-records">
                                     <div class="empty-state">
                                         <i class="fas fa-folder-open"></i>
                                         <p>暂无治疗记录</p>
@@ -210,6 +364,10 @@
                         <span class="record-info-label"><i class="fas fa-clock"></i> 创建时间：</span>
                         <span id="detail-created-at" class="record-info-value"></span>
                     </div>
+                    <div class="record-info-item">
+                        <span class="record-info-label"><i class="fas fa-tag"></i> 页面名称：</span>
+                        <span id="detail-page-name" class="record-info-value"></span>
+                    </div>
                 </div>
                 <div class="record-images">
                     <div class="record-image-container">
@@ -219,9 +377,18 @@
                         </div>
                     </div>
                     <div class="record-image-container">
-                        <h4><i class="fas fa-layer-group"></i> 掩膜图像</h4>
+                        <h4><i class="fas fa-layer-group"></i> 处理结果</h4>
                         <div class="record-image-wrapper">
-                            <img id="detail-mask-image" src="" alt="掩膜图像">
+                            <img id="detail-mask-image" src="" alt="处理结果">
+                        </div>
+                    </div>
+                </div>
+                <!-- 添加处理结果描述区域 -->
+                <div class="record-details-section">
+                    <h4><i class="fas fa-clipboard-check"></i> 处理结果描述</h4>
+                    <div class="detection-results-container" id="detail-detection-results">
+                        <div class="loading-results">
+                            <i class="fas fa-spinner fa-spin"></i> 加载分析结果...
                         </div>
                     </div>
                 </div>
@@ -236,15 +403,221 @@
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/records.js') }}"></script>
     <script>
+        // 搜索记录函数 - 全局定义，确保在页面加载完成前就能使用
+        function searchRecords(searchTerm) {
+            console.log('执行搜索:', searchTerm); // 调试日志
+            
+            // 显示加载指示器
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'loading-indicator';
+            loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 搜索中...';
+            document.querySelector('.records-table').appendChild(loadingIndicator);
+            
+            // 发送搜索请求到后端
+            fetch(`/search_records?q=${encodeURIComponent(searchTerm)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络响应异常');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 移除加载指示器
+                    if (loadingIndicator.parentNode) {
+                        loadingIndicator.parentNode.removeChild(loadingIndicator);
+                    }
+                    
+                    if (data.success) {
+                        console.log('搜索成功，结果数量:', data.records.length); // 调试日志
+                        console.log('搜索结果:', data.records); // 打印完整搜索结果以便调试
+                        
+                        // 确保每条记录都有正确的页面名称
+                        data.records.forEach(record => {
+                            if (!record.page_name || record.page_name === '') {
+                                console.log(`为记录ID:${record.id}添加默认页面名称`);
+                                
+                                // 从mask_image路径判断页面类型
+                                const mask_image = record.mask_image || '';
+                                
+                                if (mask_image.includes('results/')) {
+                                    if (mask_image.includes('mask_')) {
+                                        record.page_name = '肿瘤分割';
+                                    } else if (mask_image.includes('result_')) {
+                                        record.page_name = '肿瘤检测';
+                                    } else {
+                                        record.page_name = '肿瘤检测';
+                                    }
+                                } else if (mask_image.includes('uploads/') && mask_image.includes('result_')) {
+                                    record.page_name = '脑部检测';
+                                } else if (mask_image.includes('segmentation_') || mask_image.includes('overlay_')) {
+                                    record.page_name = '肿瘤分割';
+                                } else if (mask_image.includes('brain_')) {
+                                    record.page_name = '脑部检测';
+                                } else if (mask_image.includes('tumor') || mask_image.includes('cancer') || mask_image.includes('detect')) {
+                                    record.page_name = '肿瘤检测';
+                                } else {
+                                    record.page_name = '手动添加';
+                                }
+                            }
+                            
+                            console.log(`记录ID:${record.id} 页面名称:${record.page_name}`);
+                        });
+                        
+                        updateTable(data.records);
+                    } else {
+                        alert('搜索失败：' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('搜索出错:', error);
+                    // 移除加载指示器
+                    if (loadingIndicator.parentNode) {
+                        loadingIndicator.parentNode.removeChild(loadingIndicator);
+                    }
+                    alert('搜索请求失败，请稍后重试');
+                });
+        }
+        
+        // 更新表格内容 - 全局定义
+        function updateTable(records) {
+            console.log('更新表格，记录数:', records.length);
+            const tbody = document.querySelector('table tbody');
+            tbody.innerHTML = '';
+            
+            if (records.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="no-records">
+                            <div class="empty-state">
+                                <i class="fas fa-search"></i>
+                                <p>未找到匹配的记录</p>
+                                <button class="btn-primary" onclick="clearSearch()">
+                                    <i class="fas fa-undo"></i> 显示全部
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                records.forEach(record => {
+                    const row = document.createElement('tr');
+                    row.className = 'record-row';
+                    
+                    let html = `
+                        <td>
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" class="record-checkbox" id="record-${record.id}" data-id="${record.id}">
+                                <label for="record-${record.id}"></label>
+                            </div>
+                        </td>
+                        <td class="record-sequence">${record.sequence_number}</td>
+                        <td>
+                            <div class="image-thumbnail-container">
+                                <img src="/static/${record.initial_image}" alt="原始图像" class="record-thumbnail">
+                                <div class="image-hover-overlay">
+                                    <i class="fas fa-search-plus"></i>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="image-thumbnail-container">
+                                <img src="/static/${record.mask_image}" alt="处理结果" class="record-thumbnail">
+                                <div class="image-hover-overlay">
+                                    <i class="fas fa-search-plus"></i>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${record.detection_date}</td>
+                        <td>${record.page_name || '手动添加'}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-view" onclick="viewRecord(${record.id})"><i class="fas fa-eye"></i> 查看</button>
+                                <button class="btn-delete" onclick="deleteRecord(${record.id})"><i class="fas fa-trash-alt"></i> 删除</button>
+                            </div>
+                        </td>
+                    `;
+                    
+                    // 调试页面名称
+                    console.log(`记录ID:${record.id} - 页面名称:${record.page_name}`);
+                    
+                    row.innerHTML = html;
+                    tbody.appendChild(row);
+                });
+                
+                bindThumbnailEvents();
+            }
+            
+            // 更新记录计数
+            document.querySelector('.record-count').innerHTML = `<i class="fas fa-file-medical"></i> 共 ${records.length} 条记录`;
+            
+            // 更新分页信息
+            const paginationInfo = document.querySelector('.pagination-info');
+            if (paginationInfo) {
+                paginationInfo.innerHTML = `<span>共 <strong>1</strong> 页，<strong>${records.length}</strong> 条记录</span>`;
+            }
+            
+            // 更新页面底部的记录数信息（如果存在）
+            document.querySelectorAll('span').forEach(element => {
+                if (element.className !== 'record-count' && element.textContent.includes('条记录')) {
+                    element.textContent = `共 1 页，${records.length} 条记录`;
+                }
+            });
+            
+            // 查找特定格式的文本，如"共 1 页，3 条记录"
+            document.querySelectorAll('span, div, p').forEach(element => {
+                if (element.textContent.match(/共\s*\d+\s*页\s*,?\s*\d+\s*条记录/)) {
+                    element.textContent = `共 1 页，${records.length} 条记录`;
+                }
+            });
+            
+            // 如果有特定ID的元素也更新
+            const recordsCountElement = document.getElementById('records-count');
+            if (recordsCountElement) {
+                recordsCountElement.textContent = `${records.length}`;
+            }
+        }
+        
+        // 清除搜索 - 全局定义
+        function clearSearch() {
+            document.getElementById('search-records').value = '';
+            searchRecords('');
+        }
+        
+        // 绑定缩略图点击事件 - 全局定义
+        function bindThumbnailEvents() {
+            document.querySelectorAll('.image-thumbnail-container').forEach(container => {
+                container.addEventListener('click', function() {
+                    const imgSrc = this.querySelector('img').src;
+                    document.getElementById('preview-image-large').src = imgSrc;
+                    document.getElementById('image-preview-modal').style.display = 'flex';
+                });
+            });
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
+            // 页面加载时初始化各种事件
+            
             // 添加卡片动画效果
             const cardSections = document.querySelectorAll('.card-section');
             cardSections.forEach((section, index) => {
                 setTimeout(() => {
                     section.classList.add('fade-in');
                 }, index * 100);
+            });
+            
+            // 搜索按钮事件
+            document.getElementById('search-btn').addEventListener('click', function() {
+                const searchTerm = document.getElementById('search-records').value.trim();
+                searchRecords(searchTerm);
+            });
+            
+            // 回车搜索
+            document.getElementById('search-records').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    const searchTerm = this.value.trim();
+                    searchRecords(searchTerm);
+                }
             });
             
             // 文件上传预览
@@ -276,30 +649,8 @@
                 }
             });
             
-            // 图片缩略图点击预览
-            const thumbnails = document.querySelectorAll('.image-thumbnail-container');
-            thumbnails.forEach(thumbnail => {
-                thumbnail.addEventListener('click', function() {
-                    const imgSrc = this.querySelector('img').src;
-                    document.getElementById('preview-image-large').src = imgSrc;
-                    document.getElementById('image-preview-modal').style.display = 'flex';
-                });
-            });
-            
-            // 搜索功能
-            document.getElementById('search-btn').addEventListener('click', function() {
-                const searchTerm = document.getElementById('search-records').value.toLowerCase();
-                const rows = document.querySelectorAll('.record-row');
-                
-                rows.forEach(row => {
-                    const date = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-                    if (date.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            });
+            // 初始化绑定缩略图事件
+            bindThumbnailEvents();
         });
         
         // 打开添加记录模态框
@@ -355,10 +706,110 @@
                         // 填充记录详情
                         document.getElementById('detail-detection-date').textContent = record.detection_date;
                         document.getElementById('detail-created-at').textContent = record.created_at;
+                        document.getElementById('detail-page-name').textContent = record.page_name || '手动添加';
                         
                         // 设置图像
                         document.getElementById('detail-initial-image').src = `/static/${record.initial_image}`;
                         document.getElementById('detail-mask-image').src = `/static/${record.mask_image}`;
+                        
+                        // 添加处理结果描述
+                        const detectionResultsContainer = document.getElementById('detail-detection-results');
+                        
+                        if (record.detection_results) {
+                            const results = record.detection_results;
+                            let resultsHTML = '';
+                            
+                            // 根据页面类型展示不同的结果格式
+                            if (record.page_name === '肿瘤检测') {
+                                // 肿瘤检测结果
+                                const detected = results.tumor_detected;
+                                const confidence = results.confidence;
+                                
+                                resultsHTML = `
+                                    <div class="detection-result-item">
+                                        <div class="result-status ${detected ? 'detected' : 'not-detected'}">
+                                            <strong>${detected ? '检测到肿瘤' : '未检测到肿瘤'}</strong>
+                                            <span class="result-confidence">（置信度: ${confidence.toFixed(1)}%）</span>
+                                        </div>
+                                        <div class="probability-bar">
+                                            <div class="probability-fill" style="width: ${confidence}%"></div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else if (record.page_name === '脑部检测') {
+                                // 脑部检测结果
+                                const classInfo = results.class_info || {};
+                                const detectionInfo = results.detection_info || {};
+                                
+                                resultsHTML = `
+                                    <div class="detection-result-item">
+                                        <div class="result-type">
+                                            <span class="result-label">肿瘤类型：</span>
+                                            <span class="result-value">${classInfo.class_name || '未知'}</span>
+                                            <span class="result-confidence">（置信度: ${(classInfo.probability || 0).toFixed(1)}%）</span>
+                                        </div>
+                                        <div class="probability-bar">
+                                            <div class="probability-fill" style="width: ${classInfo.probability || 0}%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="detection-result-item">
+                                        <div class="result-malignancy">
+                                            <span class="result-label">良恶性分析：</span>
+                                            <span class="result-value">${detectionInfo.malignancy_text || '未知'}</span>
+                                        </div>
+                                        <div class="probability-groups">
+                                            <div class="probability-group">
+                                                <div class="probability-label">良性概率: ${(detectionInfo.benign_prob || 0).toFixed(1)}%</div>
+                                                <div class="probability-bar">
+                                                    <div class="probability-fill" style="width: ${detectionInfo.benign_prob || 0}%"></div>
+                                                </div>
+                                            </div>
+                                            <div class="probability-group">
+                                                <div class="probability-label">恶性概率: ${(detectionInfo.malignant_prob || 0).toFixed(1)}%</div>
+                                                <div class="probability-bar">
+                                                    <div class="probability-fill malignant" style="width: ${detectionInfo.malignant_prob || 0}%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else if (record.page_name === '肿瘤分割') {
+                                // 肿瘤分割结果
+                                const areaPercent = results.area_percent || 0;
+                                
+                                resultsHTML = `
+                                    <div class="detection-result-item">
+                                        <div class="result-area">
+                                            <span class="result-label">肿瘤区域占比：</span>
+                                            <span class="result-value">${areaPercent.toFixed(1)}%</span>
+                                        </div>
+                                        <div class="probability-bar">
+                                            <div class="probability-fill" style="width: ${Math.min(areaPercent * 5, 100)}%"></div>
+                                        </div>
+                                        <div class="result-description">
+                                            已成功分割出肿瘤区域，颜色标记显示在右侧图像中
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                // 手动添加或其他类型
+                                resultsHTML = `
+                                    <div class="detection-result-item">
+                                        <div class="result-description">
+                                            ${results.description || '该记录为手动添加，无自动分析结果'}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            
+                            detectionResultsContainer.innerHTML = resultsHTML;
+                        } else {
+                            detectionResultsContainer.innerHTML = `
+                                <div class="no-results">
+                                    <i class="fas fa-info-circle"></i> 无可用的处理结果数据
+                                </div>
+                            `;
+                        }
                         
                         // 显示模态框
                         const modal = document.getElementById('record-detail-modal');

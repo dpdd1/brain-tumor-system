@@ -498,6 +498,33 @@
             justify-content: space-between;
             margin-bottom: 15px;
         }
+        
+        /* 保存状态消息样式 */
+        .save-status {
+            margin-top: 20px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .save-status.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        
+        .save-status.error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        
+        .save-status i {
+            font-size: 16px;
+        }
     </style>
 </head>
 <body class="inner-page">
@@ -831,6 +858,12 @@
                 ${createSection('🔍 肿瘤检测结果', filteredDetections)}
                 ${createSection('📈 类型概率分布', filteredClassifications)}
                 ${createAnalysis(data.medical_analysis)}
+                ${data.save_message ? `
+                <div class="save-status ${data.save_success ? 'success' : 'error'}">
+                    <i class="fas ${data.save_success ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                    <span>${data.save_message}</span>
+                </div>
+                ` : ''}
             `;
 
             resultsContainer.innerHTML = resultHTML;
