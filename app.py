@@ -18,6 +18,31 @@ import requests
 import time
 import threading
 from collections import deque
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, mm
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from io import BytesIO
+import datetime
+
+# 配置ReportLab支持中文
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+# 注册中文字体
+try:
+    # Windows系统字体路径
+    pdfmetrics.registerFont(TTFont('SimSun', 'C:/Windows/Fonts/simsun.ttc'))
+    pdfmetrics.registerFont(TTFont('SimHei', 'C:/Windows/Fonts/simhei.ttf'))
+except:
+    try:
+        # Linux/Mac系统字体路径
+        pdfmetrics.registerFont(TTFont('SimSun', '/usr/share/fonts/truetype/arphic/uming.ttc'))
+        pdfmetrics.registerFont(TTFont('SimHei', '/usr/share/fonts/truetype/arphic/ukai.ttc'))
+    except:
+        print("警告: 无法加载中文字体，PDF中的中文可能无法正确显示")
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # 用于session加密
@@ -137,9 +162,9 @@ DEEPSEEK_HEADERS = {
 def load_models():
     global detection_model, segmentation_model, classification_model
     try:
-        detection_model = YOLO('models/detection.pt')
-        segmentation_model = YOLO('models/segmentation.pt')
-        classification_model = YOLO('models/classification.pt')
+        detection_model = YOLO('./models/detection.pt')
+        segmentation_model = YOLO('./models/segmentation.pt')
+        classification_model = YOLO('./models/classification.pt')
         print("YOLOv11模型加载成功")
     except Exception as e:
         print(f"模型加载失败: {str(e)}")
@@ -2062,7 +2087,7 @@ def video_detection():
     # 确保会话中有最新的用户头像
     ensure_avatar_in_session()
     
-    return render_template('video.html')
+    return render_template('index3.html')
 
 
 @app.route('/video_feed')
@@ -2133,6 +2158,194 @@ def serve_video(filename):
         )
     except (FileNotFoundError, ValueError) as e:
         return jsonify({"error": str(e)}), 404
+
+# 添加脑部检测结果PDF导出功能
+@app.route('/export_detection_pdf', methods=['POST'])
+def export_detection_pdf():
+    try:
+        # 获取POST请求中的数据
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'message': '没有提供数据'}), 400
+        
+        # 提取数据
+        image_path = data.get('result_image')
+        detections = data.get('detections', [])
+        malignancy = data.get('malignancy', [])
+        medical_analysis = data.get('medical_analysis', '无AI医学分析')
+        model_used = data.get('model_used', 'quick')
+        
+        if not image_path:
+            return jsonify({'success': False, 'message': '没有提供图像路径'}), 400
+        
+        # 创建PDF文件
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                               rightMargin=72, leftMargin=72,
+                               topMargin=72, bottomMargin=72)
+        
+        # 获取样式并修改，而不是添加新样式
+        styles = getSampleStyleSheet()
+        
+        # 修改已存在的Title样式，而不是添加新样式
+        styles['Title'].fontName = 'SimHei'
+        styles['Title'].fontSize = 24
+        styles['Title'].alignment = TA_CENTER
+        styles['Title'].spaceAfter = 20
+        
+        # 创建自定义样式（使用不会冲突的名称）
+        customHeading1 = ParagraphStyle(
+            name='CustomHeading1',
+            parent=styles['Heading1'],
+            fontName='SimHei',
+            fontSize=18,
+            alignment=TA_LEFT,
+            spaceAfter=12,
+            spaceBefore=12
+        )
+        
+        customHeading2 = ParagraphStyle(
+            name='CustomHeading2',
+            parent=styles['Heading2'],
+            fontName='SimHei',
+            fontSize=14,
+            alignment=TA_LEFT,
+            spaceAfter=8,
+            spaceBefore=8
+        )
+        
+        customNormal = ParagraphStyle(
+            name='CustomNormal',
+            parent=styles['Normal'],
+            fontName='SimSun',
+            fontSize=12,
+            alignment=TA_LEFT,
+            spaceAfter=5
+        )
+        
+        # 创建PDF内容
+        content = []
+        
+        # 添加标题
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        content.append(Paragraph(f"脑肿瘤检测分析报告", styles['Title']))
+        content.append(Paragraph(f"生成时间: {current_time}", customNormal))
+        content.append(Paragraph(f"用户: {session.get('username', '未登录用户')}", customNormal))
+        content.append(Spacer(1, 20))
+        
+        # 添加检测图像
+        img_path = os.path.join(app.root_path, 'static', image_path)
+        if os.path.exists(img_path):
+            img = RLImage(img_path, width=400, height=300)
+            content.append(Paragraph("检测结果图像:", customHeading1))
+            content.append(img)
+            content.append(Spacer(1, 10))
+        
+        # 添加检测结果
+        content.append(Paragraph("肿瘤分类检测结果:", customHeading1))
+        if detections:
+            # 创建表格数据
+            table_data = [["肿瘤类型", "置信度"]]
+            for detection in detections:
+                table_data.append([
+                    detection.get('class', '未知'),
+                    f"{detection.get('confidence', 0) * 100:.2f}%"
+                ])
+            
+            # 创建表格
+            t = Table(table_data, colWidths=[250, 150])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'SimHei'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTNAME', (0, 1), (-1, -1), 'SimSun'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ]))
+            content.append(t)
+        else:
+            content.append(Paragraph("未检测到肿瘤", customNormal))
+        
+        content.append(Spacer(1, 20))
+        
+        # 添加良恶性分析结果
+        content.append(Paragraph("良恶性分析结果:", customHeading1))
+        if malignancy:
+            # 创建表格数据
+            table_data = [["类型", "概率"]]
+            for item in malignancy:
+                table_data.append([
+                    item.get('class', '未知'),
+                    item.get('display_prob', '0%')
+                ])
+            
+            # 创建表格
+            t = Table(table_data, colWidths=[250, 150])
+            t.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'SimHei'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTNAME', (0, 1), (-1, -1), 'SimSun'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ]))
+            content.append(t)
+        else:
+            content.append(Paragraph("无良恶性分析结果", customNormal))
+        
+        content.append(Spacer(1, 20))
+        
+        # 添加AI医学分析
+        content.append(Paragraph(f"AI医学分析 ({model_to_display(model_used)}):", customHeading1))
+        # 将AI分析文本拆分为段落
+        for paragraph in medical_analysis.split('\n'):
+            if paragraph.strip():  # 忽略空行
+                if paragraph.startswith('▶') or paragraph.startswith('【'):
+                    content.append(Paragraph(paragraph, customHeading2))
+                else:
+                    content.append(Paragraph(paragraph, customNormal))
+        
+        # 添加页脚
+        content.append(Spacer(1, 30))
+        content.append(Paragraph("注意：本报告仅供参考，具体诊断请咨询专业医生。", customNormal))
+        content.append(Paragraph(f"脑肿瘤医学诊断平台 © {datetime.datetime.now().year}", customNormal))
+        
+        # 构建PDF
+        doc.build(content)
+        
+        # 获取PDF数据
+        pdf_data = buffer.getvalue()
+        buffer.close()
+        
+        # 返回PDF文件
+        response = make_response(pdf_data)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=brain_tumor_report_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.pdf'
+        
+        return response
+    
+    except Exception as e:
+        print(f"生成PDF报告出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': f'生成PDF报告时出错: {str(e)}'}), 500
+
+# 模型名称转显示名称
+def model_to_display(model_name):
+    model_display = {
+        'deepseek': 'DeepSeek大模型',
+        'qwen': '通义千问大模型',
+        'quick': '快速分析'
+    }
+    return model_display.get(model_name, model_name)
 
 if __name__ == '__main__':
     app.run(debug=True)

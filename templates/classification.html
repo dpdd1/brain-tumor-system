@@ -468,6 +468,36 @@
         .threshold-info {
             display: none; /* 不再需要单独的阈值信息显示 */
         }
+        
+        /* PDF导出按钮样式 */
+        .export-pdf-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 12px;
+            margin-left: 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .export-pdf-btn i {
+            margin-right: 6px;
+        }
+        
+        .export-pdf-btn:hover {
+            background-color: #c9302c;
+        }
+        
+        .model-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body class="inner-page">
@@ -668,9 +698,17 @@
                 if (!response.ok) throw new Error(`请求失败: ${response.status}`);
                 const data = await response.json();
 
-                if (data.error) throw new Error(data.error);
-                showResults(data);
+                if (data.success === false) {
+                    throw new Error(data.message || '检测过程中出现错误');
+                }
 
+                showResults(data);
+                
+                // 成功获取结果后，确保导出PDF按钮可见
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                if (exportPdfBtn) {
+                    exportPdfBtn.style.display = 'flex';
+                }
             } catch (error) {
                 console.error('检测过程中出错:', error);
                 showError(error.message);
@@ -748,6 +786,9 @@
                 <h3><i class="fas fa-chart-bar"></i> 分析结果</h3>
                 <div class="model-info">
                     <i class="${currentModel === 'deepseek' ? 'fas fa-robot' : currentModel === 'qwen' ? 'fas fa-microchip' : 'fas fa-bolt'}"></i> 分析模型：<strong>${currentModel === 'deepseek' ? 'DeepSeek' : currentModel === 'qwen' ? '通义千问' : '快速分析'}</strong>
+                    <button class="export-pdf-btn" id="exportPdfBtn" onclick="exportResultsAsPdf()">
+                        <i class="fas fa-file-pdf"></i> 导出PDF报告
+                    </button>
                 </div>
                 
                 <div class="threshold-panel">
@@ -1183,6 +1224,78 @@
                     <div class="medical-analysis">${analysis}</div>
                 </div>
             `;
+        }
+
+        // 导出PDF报告
+        function exportResultsAsPdf() {
+            if (!lastResultData) {
+                alert('请先上传图像并进行检测');
+                return;
+            }
+
+            // 显示加载状态
+            loadingOverlay.style.display = 'flex';
+            
+            // 构造导出数据
+            const exportData = {
+                result_image: lastResultData.result_image,
+                detections: lastResultData.detections || [],
+                malignancy: lastResultData.malignancy || [],
+                medical_analysis: lastResultData.medical_analysis || '无AI医学分析',
+                model_used: currentModel
+            };
+            
+            // 发送到后端
+            fetch('/export_detection_pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(exportData)
+            })
+            .then(response => {
+                // 检查响应是否成功
+                if (!response.ok) {
+                    throw new Error('生成PDF失败，请稍后重试');
+                }
+                // 判断是否返回的是PDF文件
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/pdf')) {
+                    // 是PDF文件，处理下载
+                    return response.blob();
+                } else {
+                    // 不是PDF文件，可能是错误信息
+                    return response.json().then(data => {
+                        throw new Error(data.message || '导出PDF失败');
+                    });
+                }
+            })
+            .then(blob => {
+                // 创建URL
+                const url = window.URL.createObjectURL(blob);
+                
+                // 创建下载链接
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `脑肿瘤检测报告_${new Date().toISOString().slice(0, 10)}.pdf`;
+                
+                // 将链接添加到文档并触发点击
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                console.error('导出PDF出错:', error);
+                alert(error.message || '导出PDF失败，请稍后重试');
+            })
+            .finally(() => {
+                // 隐藏加载状态
+                loadingOverlay.style.display = 'none';
+            });
         }
     </script>
 </body>
