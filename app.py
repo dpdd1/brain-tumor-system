@@ -3,7 +3,7 @@ from werkzeug.utils import secure_filename
 import os
 import sqlite3
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import cv2
 import numpy as np
 import torch
@@ -27,6 +27,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from io import BytesIO
 import datetime as dt
 import random
+import json
 
 # 辅助函数：获取当前时间，避免导入冲突
 def get_now():
@@ -2736,6 +2737,373 @@ def debug_db_schema():
         return "<br>".join(output)
     except Exception as e:
         return f"查询出错: {str(e)}"
+
+def format_confidence(value):
+    try:
+        if isinstance(value, str):
+            value = float(value)
+        return f"{value*100:.2f}%" if value else "未知"
+    except:
+        return "未知"
+
+def get_detection_info(record):
+    try:
+        # 尝试解析json_metadata
+        json_metadata = None
+        if record['json_metadata']:
+            if isinstance(record['json_metadata'], str):
+                json_metadata = json.loads(record['json_metadata'])
+            else:
+                json_metadata = record['json_metadata']
+                
+        # 尝试解析detection_info
+        detection_info = None
+        if record['detection_info']:
+            if isinstance(record['detection_info'], str):
+                detection_info = json.loads(record['detection_info'])
+            else:
+                detection_info = record['detection_info']
+        
+        # 获取置信度
+        confidence = None
+        if detection_info and 'confidence' in detection_info:
+            confidence = float(detection_info['confidence'])
+        elif json_metadata:
+            if 'confidence' in json_metadata:
+                confidence = float(json_metadata['confidence']) / 100
+            elif 'class_info' in json_metadata and 'probability' in json_metadata['class_info']:
+                confidence = float(json_metadata['class_info']['probability']) / 100
+        
+        # 获取检测来源
+        page_name = '其他'  # 默认为其他
+        mask_image = record['mask_image'] or ''
+        
+        # 更宽松的肿瘤分割匹配条件
+        segmentation_keywords = ['segmentation', 'mask', 'overlay', '分割', '肿瘤分割']
+        is_segmentation = any(keyword in mask_image.lower() for keyword in segmentation_keywords)
+        
+        # 更宽松的检测来源判断
+        if is_segmentation:
+            page_name = '肿瘤分割'
+        elif json_metadata and 'class_info' in json_metadata:
+            page_name = '脑部检测'
+        elif any(kw in mask_image.lower() for kw in ['result', 'detection', '检测']):
+            page_name = '肿瘤检测'
+        elif 'brain' in mask_image.lower() or '脑部' in mask_image:
+            page_name = '脑部检测'
+        elif 'video' in mask_image.lower() or '视频' in mask_image:
+            page_name = '视频检测'
+            
+        # 如果metadata或detection_info中有明确的来源信息
+        if detection_info and 'detection_source' in detection_info:
+            source = detection_info['detection_source']
+            # 标准化来源名称
+            if '分割' in source or 'segment' in source.lower():
+                page_name = '肿瘤分割'
+            elif ('检测' in source and '脑部' in source) or 'brain' in source.lower():
+                page_name = '脑部检测'
+            elif ('检测' in source and '肿瘤' in source) or 'tumor' in source.lower():
+                page_name = '肿瘤检测'
+            elif '视频' in source or 'video' in source.lower():
+                page_name = '视频检测'
+            else:
+                page_name = source
+        elif json_metadata and 'detection_info' in json_metadata and 'detection_source' in json_metadata['detection_info']:
+            source = json_metadata['detection_info']['detection_source']
+            # 标准化来源名称
+            if '分割' in source or 'segment' in source.lower():
+                page_name = '肿瘤分割'
+            elif ('检测' in source and '脑部' in source) or 'brain' in source.lower():
+                page_name = '脑部检测'
+            elif ('检测' in source and '肿瘤' in source) or 'tumor' in source.lower():
+                page_name = '肿瘤检测'
+            elif '视频' in source or 'video' in source.lower():
+                page_name = '视频检测'
+            else:
+                page_name = source
+                
+        # 如果json_metadata中有操作类型信息
+        if json_metadata and 'operation_type' in json_metadata:
+            op_type = json_metadata['operation_type']
+            if '分割' in op_type or 'segment' in op_type.lower():
+                page_name = '肿瘤分割'
+        
+        # 获取AI模型信息
+        model = "无AI"
+        if json_metadata:
+            if 'model_name' in json_metadata:
+                model = json_metadata['model_name']
+            elif 'ai_model' in json_metadata:
+                model = json_metadata['ai_model']
+            elif 'detection_info' in json_metadata and 'model_version' in json_metadata['detection_info']:
+                model = json_metadata['detection_info']['model_version']
+        
+        # 获取肿瘤类型
+        tumor_type = '未知'
+        if json_metadata and 'class_info' in json_metadata and 'class_name' in json_metadata['class_info']:
+            tumor_type = json_metadata['class_info']['class_name']
+        elif detection_info and 'class' in detection_info:
+            tumor_type = detection_info['class']
+        elif json_metadata and 'tumor_detected' in json_metadata:
+            tumor_type = '脑肿瘤' if json_metadata['tumor_detected'] else '正常'
+        
+        return {
+            'confidence': confidence,
+            'page_name': page_name,
+            'model': model,
+            'tumor_type': tumor_type
+        }
+    except Exception as e:
+        print(f"解析记录时出错: {str(e)}")
+        return {
+            'confidence': None,
+            'page_name': '未知来源',
+            'model': '无AI',
+            'tumor_type': '未知'
+        }
+
+def get_database_data():
+    """
+    从数据库获取所有需要的数据
+    """
+    try:
+        # 连接数据库
+        conn = sqlite3.connect('users.db')
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        # 获取所有用户信息
+        c.execute('SELECT id, username FROM users')
+        users_raw = c.fetchall()
+        users_info = {}
+        
+        for user in users_raw:
+            username = user['username']
+            users_info[username] = {
+                'id': user['id'],
+                'username': username
+            }
+        
+        # 获取肿瘤类型统计
+        c.execute('''
+            SELECT 
+                CASE
+                    WHEN json_extract(json_metadata, '$.class_info.class_name') IS NOT NULL 
+                    THEN json_extract(json_metadata, '$.class_info.class_name')
+                    WHEN json_extract(detection_info, '$.class') IS NOT NULL 
+                    THEN json_extract(detection_info, '$.class')
+                    WHEN json_extract(json_metadata, '$.tumor_detected') = 1
+                    THEN '脑肿瘤'
+                    WHEN mask_image LIKE '%mask_%' THEN '分割肿瘤'
+                    WHEN mask_image LIKE '%result_%' THEN '检测肿瘤'
+                    ELSE '未知'
+                END as tumor_type,
+                COUNT(*) as count 
+            FROM records 
+            GROUP BY tumor_type
+            ORDER BY count DESC
+        ''')
+        tumor_types = [dict(row) for row in c.fetchall()]
+        
+        # 获取用户检测数量
+        c.execute('''
+            SELECT username, COUNT(*) as count
+            FROM records
+            GROUP BY username
+            ORDER BY count DESC
+        ''')
+        user_detection_count = []
+        for row in c.fetchall():
+            username = row['username']
+            user_detection_count.append({
+                'username': username,
+                'count': row['count']
+            })
+        
+        # 获取用户平均置信度
+        c.execute('''
+            SELECT 
+                username,
+                AVG(
+                    CASE
+                        WHEN json_extract(detection_info, '$.confidence') IS NOT NULL 
+                            AND json_extract(detection_info, '$.confidence') != 'null'
+                        THEN json_extract(detection_info, '$.confidence') * 100
+                        WHEN json_extract(json_metadata, '$.confidence') IS NOT NULL 
+                            AND json_extract(json_metadata, '$.confidence') != 'null'
+                        THEN json_extract(json_metadata, '$.confidence')
+                        WHEN json_extract(json_metadata, '$.class_info.probability') IS NOT NULL 
+                            AND json_extract(json_metadata, '$.class_info.probability') != 'null'
+                        THEN json_extract(json_metadata, '$.class_info.probability')
+                        ELSE 50 -- 为NULL的情况提供默认值
+                    END
+                ) as confidence,
+                COUNT(*) as detection_count
+            FROM records
+            GROUP BY username
+            ORDER BY confidence DESC
+        ''')
+        user_confidence = []
+        for row in c.fetchall():
+            username = row['username']
+            confidence = row['confidence'] if row['confidence'] is not None else 50.0
+            user_confidence.append({
+                'username': username,
+                'confidence': confidence,
+                'detection_count': row['detection_count']
+            })
+        
+        # 获取最近检测数量
+        today = datetime.now().date()
+        dates = [(today - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(10)]
+        
+        recent_detections = []
+        for date in dates:
+            c.execute('''
+                SELECT COUNT(*) as count 
+                FROM records 
+                WHERE date(created_at) = ?
+            ''', (date,))
+            count = c.fetchone()['count']
+            recent_detections.append({
+                'date': date,
+                'count': count
+            })
+        
+        # 获取实时预测信息
+        c.execute('''
+            SELECT *
+            FROM records 
+            ORDER BY created_at DESC 
+            LIMIT 20
+        ''')
+        recent_records = c.fetchall()
+        
+        realtime_detections = []
+        for record in recent_records:
+            # 获取检测信息
+            detection_info = get_detection_info(record)
+            
+            # 添加到实时检测列表
+            username = record['username']
+            
+            realtime_detections.append({
+                'id': record['id'],
+                'username': username,
+                'tumor_type': detection_info['tumor_type'],
+                'confidence': detection_info['confidence'],
+                'model': detection_info['model'],
+                'detection_date': record['created_at'],
+                'page_name': detection_info['page_name'],
+                'threshold': 0.25,  # 默认阈值
+                'initial_image': record['initial_image'],
+                'mask_image': record['mask_image']
+            })
+        
+        # 获取检测来源统计
+        c.execute('''
+            SELECT 
+                CASE
+                    WHEN mask_image LIKE '%mask%' OR mask_image LIKE '%overlay%' OR 
+                         mask_image LIKE '%segmentation%' OR mask_image LIKE '%分割%' THEN '肿瘤分割'
+                    WHEN json_extract(json_metadata, '$.class_info') IS NOT NULL THEN '脑部检测'
+                    WHEN mask_image LIKE '%result%' OR mask_image LIKE '%detection%' OR 
+                         mask_image LIKE '%检测%' THEN '肿瘤检测'
+                    WHEN mask_image LIKE '%brain%' OR mask_image LIKE '%脑部%' THEN '脑部检测'
+                    WHEN mask_image LIKE '%video%' OR mask_image LIKE '%视频%' THEN '视频检测'
+                    WHEN json_extract(json_metadata, '$.operation_type') LIKE '%分割%' THEN '肿瘤分割'
+                    WHEN json_extract(detection_info, '$.detection_source') LIKE '%分割%' THEN '肿瘤分割'
+                    WHEN json_extract(json_metadata, '$.detection_info.detection_source') LIKE '%分割%' THEN '肿瘤分割'
+                    ELSE '其他'
+                END as page_type,
+                COUNT(*) as count
+            FROM records 
+            GROUP BY page_type
+            ORDER BY count DESC
+        ''')
+        detection_by_source = [dict(row) for row in c.fetchall()]
+        
+        # 关闭数据库连接
+        conn.close()
+        
+        # 返回数据
+        return {
+            'tumor_types': tumor_types,
+            'user_detection_count': user_detection_count,
+            'user_confidence': user_confidence,
+            'recent_detections': recent_detections,
+            'realtime_detections': realtime_detections,
+            'detection_by_source': detection_by_source
+        }
+    except Exception as e:
+        print(f"获取数据库数据时出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def convert_data_for_json(data):
+    """转换数据以便JSON序列化"""
+    if isinstance(data, dict):
+        result = {}
+        for key, value in data.items():
+            result[key] = convert_data_for_json(value)
+        return result
+    elif isinstance(data, list):
+        return [convert_data_for_json(item) for item in data]
+    elif isinstance(data, sqlite3.Row):
+        return {key: convert_data_for_json(data[key]) for key in data.keys()}
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    else:
+        return data
+
+@app.route('/data_analysis')
+def data_analysis():
+    """返回数据分析页面"""
+    return render_template('data_analysis.html')
+
+@app.route('/api/data', methods=['GET'])
+def api_data():
+    """提供所有数据的API端点"""
+    data = get_database_data()
+    if data:
+        # 处理数据以使其可JSON序列化
+        for item in data['realtime_detections']:
+            if item['confidence'] is not None and not isinstance(item['confidence'], str):
+                item['confidence_formatted'] = f"{item['confidence']*100:.2f}%"
+            else:
+                item['confidence_formatted'] = "无"
+                
+            # 添加检测结果字段
+            if item['page_name'] == '肿瘤分割':
+                item['detection_result'] = "有肿瘤"
+            elif item['page_name'] == '肿瘤检测':
+                # 根据肿瘤类型判断
+                if "正常" in str(item['tumor_type']).lower() or "无" in str(item['tumor_type']).lower() or "normal" in str(item['tumor_type']).lower():
+                    item['detection_result'] = "无肿瘤"
+                else:
+                    item['detection_result'] = "有肿瘤"
+            elif item['page_name'] == '脑部检测':
+                # 显示具体肿瘤类型
+                item['detection_result'] = item['tumor_type']
+            else:
+                item['detection_result'] = item['tumor_type']
+            
+            # 处理日期格式
+            if item['detection_date'] and isinstance(item['detection_date'], str):
+                try:
+                    item['detection_date_formatted'] = datetime.fromisoformat(
+                        item['detection_date'].replace('Z', '+00:00')
+                    ).strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    item['detection_date_formatted'] = item['detection_date']
+        else:
+                item['detection_date_formatted'] = str(item['detection_date'])
+        
+        # 转换数据为JSON格式
+        processed_data = convert_data_for_json(data)
+        return jsonify(processed_data)
+    return jsonify({'error': '获取数据失败'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -134,11 +134,12 @@
         </div>
         <nav>
             <ul>
-                <li class="active"><a href="{{ url_for('diagnosis') }}"><i class="fas fa-stethoscope"></i> 肿瘤诊断</a></li>
-                <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
+                <li><a href="{{ url_for('data_analysis') }}"><i class="fas fa-chart-bar"></i> 数据大屏</a></li>
+                <li><a href="{{ url_for('diagnosis') }}"><i class="fas fa-microscope"></i> 肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-object-group"></i> 肿瘤分割</a></li>
                 <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
                 <li><a href="{{ url_for('video_detection') }}"><i class="fas fa-video"></i> 视频检测</a></li>
-                <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
+                <li><a href="{{ url_for('records') }}"><i class="fas fa-history"></i> 治疗记录</a></li>
                 <li class="user-profile">
                     <img src="{{ url_for('get_avatar', filename=session.get('avatar', 'default-avatar.png')) }}" alt="用户头像" class="user-avatar">
                     <span class="user-name">{{ session.get('username', '用户') }}</span>

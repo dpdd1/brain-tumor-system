@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据大屏</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 主内容 */
+        .main-content {
+            margin-top: 80px;
+            padding: 20px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* 数据卡片网格 */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .data-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .data-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .data-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .data-card-title {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-card-title i {
+            color: #2196F3;
+        }
+
+        .data-card-content {
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body class="inner-page">
+    
+    <!-- 页面背景效果 -->
+    <div class="page-background">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+        <div class="particles-container" id="particles-js"></div>
+    </div>
+
+    <header>
+        <div class="logo">
+            <i class="fas fa-brain logo-icon"></i>
+            <span class="logo-title">脑肿瘤医学诊断平台</span>
+        </div>
+        <nav>
+            <ul>
+                <li class="active"><a href="{{ url_for('data_analysis') }}"><i class="fas fa-chart-bar"></i> 数据大屏</a></li>
+                <li><a href="{{ url_for('diagnosis') }}"><i class="fas fa-search"></i> 肿瘤诊断</a></li>
+                <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
+                <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
+                <li><a href="{{ url_for('video_detection') }}"><i class="fas fa-video"></i> 视频检测</a></li>
+                <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
+                <li class="user-profile">
+                    <img src="{{ url_for('get_avatar', filename=session.get('avatar', 'default-avatar.png')) }}" alt="用户头像" class="user-avatar">
+                    <span class="user-name">{{ session.get('username', '用户') }}</span>
+                    <div class="user-dropdown">
+                        <a href="{{ url_for('profile') }}" class="user-dropdown-item">
+                            <i class="fas fa-user-circle"></i>
+                            <span>个人资料</span>
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="user-dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>退出登录</span>
+                        </a>
+                    </div>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+        <div id="root"></div>
+    </div>
+    
+    <!-- React和ReactDOM库 -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    
+    <!-- 图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- 粒子背景 -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/particles-config.js') }}"></script>
+    
+    <!-- React组件 -->
+    <script type="text/babel" src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
