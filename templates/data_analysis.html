@@ -8,10 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
     <style>
         body {
             background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
         }
@@ -27,8 +28,8 @@
 
         .card {
             background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             padding: 20px;
             margin-bottom: 20px;
         }
@@ -71,11 +72,59 @@
         }
 
         .data-card-title i {
-            color: #2196F3;
+            color: #5e72e4;
         }
 
         .data-card-content {
             min-height: 200px;
+        }
+        
+        /* 图表容器 */
+        .chart-wrapper {
+            padding: 15px;
+            border-radius: 12px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+            transition: all 0.3s ease;
+        }
+        
+        .chart-wrapper:hover {
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+            transform: translateY(-2px);
+        }
+        
+        /* 表格增强效果 */
+        .table th {
+            font-weight: 600;
+            color: #4a5568;
+            border-top: none;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        /* 刷新按钮效果增强 */
+        .btn-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+        
+        .btn-refresh i {
+            transition: transform 0.5s ease;
+        }
+        
+        .btn-refresh:hover i {
+            transform: rotate(180deg);
+        }
+        
+        /* 更新时间样式 */
+        .update-time {
+            font-size: 0.85rem;
+            color: #718096;
         }
     </style>
 </head>
@@ -122,7 +171,7 @@
 
     <!-- 主内容 -->
     <div class="main-content">
-        <div id="root"></div>
+        <div id="root"class="animate__animated animate__fadeIn animate__faster"></div>
     </div>
     
     <!-- React和ReactDOM库 -->
@@ -132,6 +181,8 @@
     
     <!-- 图表库 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="{{ url_for('static', filename='js/chart-config.js') }}"></script>
     
     <!-- 粒子背景 -->
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>

@@ -6,7 +6,7 @@ const generateGradient = (ctx, chartArea, colorStart, colorEnd) => {
     return gradient;
 };
 
-// 图表颜色主题
+// 图表颜色主题 - 更新为更现代的配色方案
 const chartColors = {
     purple: {
         primary: 'rgba(124, 77, 255, 1)',
@@ -14,40 +14,54 @@ const chartColors = {
         gradient: ['rgba(124, 77, 255, 0.0)', 'rgba(124, 77, 255, 0.5)']
     },
     blue: {
-        primary: 'rgba(66, 133, 244, 1)',
-        light: 'rgba(66, 133, 244, 0.2)',
-        gradient: ['rgba(66, 133, 244, 0.0)', 'rgba(66, 133, 244, 0.5)']
+        primary: 'rgba(56, 129, 248, 1)',
+        light: 'rgba(56, 129, 248, 0.2)',
+        gradient: ['rgba(56, 129, 248, 0.0)', 'rgba(56, 129, 248, 0.5)']
     },
     teal: {
-        primary: 'rgba(0, 180, 180, 1)',
-        light: 'rgba(0, 180, 180, 0.2)',
-        gradient: ['rgba(0, 180, 180, 0.0)', 'rgba(0, 180, 180, 0.5)']
+        primary: 'rgba(11, 186, 165, 1)',
+        light: 'rgba(11, 186, 165, 0.2)',
+        gradient: ['rgba(11, 186, 165, 0.0)', 'rgba(11, 186, 165, 0.5)']
     },
     pink: {
-        primary: 'rgba(255, 82, 123, 1)',
-        light: 'rgba(255, 82, 123, 0.2)',
-        gradient: ['rgba(255, 82, 123, 0.0)', 'rgba(255, 82, 123, 0.5)']
+        primary: 'rgba(245, 54, 92, 1)',
+        light: 'rgba(245, 54, 92, 0.2)',
+        gradient: ['rgba(245, 54, 92, 0.0)', 'rgba(245, 54, 92, 0.5)']
     },
     amber: {
-        primary: 'rgba(255, 193, 7, 1)',
-        light: 'rgba(255, 193, 7, 0.2)',
-        gradient: ['rgba(255, 193, 7, 0.0)', 'rgba(255, 193, 7, 0.5)']
+        primary: 'rgba(251, 99, 64, 1)',
+        light: 'rgba(251, 99, 64, 0.2)',
+        gradient: ['rgba(251, 99, 64, 0.0)', 'rgba(251, 99, 64, 0.5)']
+    },
+    green: {
+        primary: 'rgba(45, 206, 137, 1)',
+        light: 'rgba(45, 206, 137, 0.2)',
+        gradient: ['rgba(45, 206, 137, 0.0)', 'rgba(45, 206, 137, 0.5)']
     }
 };
 
-// 饼图配色方案
+// 饼图配色方案 - 更新为更协调的颜色搭配
 const pieChartColors = [
-    'rgba(124, 77, 255, 0.85)',
-    'rgba(66, 133, 244, 0.85)',
-    'rgba(0, 180, 180, 0.85)',
-    'rgba(255, 82, 123, 0.85)',
-    'rgba(255, 193, 7, 0.85)',
-    'rgba(126, 211, 33, 0.85)',
-    'rgba(248, 80, 50, 0.85)',
-    'rgba(148, 159, 177, 0.85)',
-    'rgba(77, 83, 96, 0.85)',
-    'rgba(230, 126, 34, 0.85)'
+    'rgba(94, 114, 228, 0.9)',
+    'rgba(45, 206, 137, 0.9)',
+    'rgba(251, 99, 64, 0.9)',
+    'rgba(17, 205, 239, 0.9)',
+    'rgba(245, 54, 92, 0.9)',
+    'rgba(130, 94, 228, 0.9)',
+    'rgba(45, 206, 183, 0.9)',
+    'rgba(251, 140, 64, 0.9)',
+    'rgba(17, 160, 239, 0.9)',
+    'rgba(230, 126, 34, 0.9)'
 ];
+
+// 图表阴影效果
+const addShadowEffect = (chart) => {
+    const ctx = chart.ctx;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 4;
+};
 
 // 根组件
 const Dashboard = () => {
@@ -173,15 +187,25 @@ const Dashboard = () => {
                     datasets: [{
                         label: '检测次数',
                         data: counts,
-                        backgroundColor: pieChartColors,
+                        backgroundColor: [
+                            pieChartColors[0],
+                            pieChartColors[1],
+                            pieChartColors[2],
+                            pieChartColors[3]
+                        ],
                         borderWidth: 0,
-                        borderRadius: 6,
-                        barPercentage: 0.7,
+                        borderRadius: 8,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.7,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             display: false
@@ -196,7 +220,19 @@ const Dashboard = () => {
                             padding: {
                                 top: 10,
                                 bottom: 20
-                            }
+                            },
+                            color: '#333'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#333',
+                            bodyColor: '#666',
+                            borderColor: 'rgba(200, 200, 200, 0.3)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            usePointStyle: true
                         }
                     },
                     scales: {
@@ -204,13 +240,14 @@ const Dashboard = () => {
                             beginAtZero: true,
                             grid: {
                                 drawBorder: false,
-                                color: 'rgba(200, 200, 200, 0.15)'
+                                color: ctx => ctx.index === 0 ? 'rgba(0, 0, 0, 0)' : 'rgba(200, 200, 200, 0.1)'
                             },
                             ticks: {
                                 font: {
                                     size: 12
                                 },
-                                color: '#555'
+                                color: '#555',
+                                padding: 10
                             }
                         },
                         x: {
@@ -221,11 +258,24 @@ const Dashboard = () => {
                                 font: {
                                     size: 12
                                 },
-                                color: '#555'
+                                color: '#555',
+                                padding: 10
                             }
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'shadow',
+                    beforeRender: (chart) => {
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                        ctx.shadowBlur = 10;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 4;
+                        ctx.restore();
+                    }
+                }]
             });
         }
         
@@ -242,18 +292,27 @@ const Dashboard = () => {
             
             // 创建图表 - 转换为饼图
             userDetectionChartInstance.current = new Chart(ctx, {
-                type: 'pie',
+                type: 'doughnut',
                 data: {
                     labels: labels,
                     datasets: [{
                         data: counts,
                         backgroundColor: pieChartColors,
-                        borderWidth: 0
+                        borderWidth: 0,
+                        borderRadius: 4,
+                        hoverOffset: 15
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '60%',
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             position: 'right',
@@ -263,7 +322,8 @@ const Dashboard = () => {
                                 },
                                 padding: 15,
                                 usePointStyle: true,
-                                pointStyle: 'circle'
+                                pointStyle: 'circle',
+                                color: '#333'
                             }
                         },
                         title: {
@@ -276,9 +336,17 @@ const Dashboard = () => {
                             padding: {
                                 top: 10,
                                 bottom: 20
-                            }
+                            },
+                            color: '#333'
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#333',
+                            bodyColor: '#666',
+                            borderColor: 'rgba(200, 200, 200, 0.3)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
                                     let label = context.label || '';
@@ -291,7 +359,30 @@ const Dashboard = () => {
                             }
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'doughnutLabels',
+                    afterDraw: (chart) => {
+                        const { ctx, data } = chart;
+                        ctx.save();
+                        const centerX = chart.chartArea.left + chart.chartArea.width / 2;
+                        const centerY = chart.chartArea.top + chart.chartArea.height / 2;
+                        
+                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = '16px sans-serif';
+                        ctx.fillStyle = '#333';
+                        ctx.fillText('总检测量', centerX, centerY - 10);
+                        
+                        ctx.font = 'bold 24px sans-serif';
+                        ctx.fillStyle = '#5e72e4';
+                        ctx.fillText(total, centerX, centerY + 15);
+                        
+                        ctx.restore();
+                    }
+                }]
             });
         }
         
@@ -323,12 +414,15 @@ const Dashboard = () => {
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: '置信度最高的六位用户',
+                        label: '置信度百分比',
                         data: confidences,
-                        backgroundColor: 'rgba(124, 77, 255, 0.3)',
-                        borderColor: 'rgba(124, 77, 255, 0.8)',
+                        backgroundColor: 'rgba(94, 114, 228, 0.4)',
+                        borderColor: 'rgba(94, 114, 228, 0.8)',
                         borderWidth: 2,
-                        pointBackgroundColor: 'rgba(124, 77, 255, 1)',
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: 'rgba(94, 114, 228, 0.8)',
+                        pointHoverBackgroundColor: 'rgba(94, 114, 228, 1)',
+                        pointBorderWidth: 2,
                         pointRadius: 4,
                         pointHoverRadius: 6
                     }]
@@ -336,39 +430,38 @@ const Dashboard = () => {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
                     scales: {
                         r: {
                             beginAtZero: true,
                             max: 100,
                             ticks: {
-                                backdropColor: 'transparent',
+                                backdropColor: 'rgba(255, 255, 255, 0.5)',
+                                backdropPadding: 2,
                                 color: '#555',
                                 font: {
                                     size: 10
                                 },
-                                stepSize: 20
+                                stepSize: 20,
+                                showLabelBackdrop: true
                             },
                             grid: {
                                 color: 'rgba(200, 200, 200, 0.2)'
                             },
                             angleLines: {
-                                color: 'rgba(200, 200, 200, 0.2)'
+                                color: 'rgba(200, 200, 200, 0.3)',
+                                lineWidth: 1
                             },
                             pointLabels: {
                                 font: {
-                                    size: 12
+                                    size: 12,
+                                    weight: 'bold'
                                 },
                                 color: '#333',
-                                padding: 15,
-                                borderRadius: 4,
-                                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                formatter: function(value, index) {
-                                    const item = chartData[index];
-                                    if (item) {
-                                        return [`${value}`, `${item.confidence.toFixed(2)}%`, `检测量: ${item.detection_count}`];
-                                    }
-                                    return value;
-                                }
+                                padding: 15
                             }
                         }
                     },
@@ -386,9 +479,17 @@ const Dashboard = () => {
                             padding: {
                                 top: 10,
                                 bottom: 20
-                            }
+                            },
+                            color: '#333'
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#333',
+                            bodyColor: '#666',
+                            borderColor: 'rgba(200, 200, 200, 0.3)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
                             callbacks: {
                                 label: function(context) {
                                     const item = chartData[context.dataIndex];
@@ -440,28 +541,42 @@ const Dashboard = () => {
                         },
                         fill: true,
                         tension: 0.4,
-                        pointBackgroundColor: chartColors.blue.primary,
-                        pointBorderColor: '#fff',
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: chartColors.blue.primary,
+                        pointBorderWidth: 2,
                         pointRadius: 4,
-                        pointHoverRadius: 6
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: chartColors.blue.primary,
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                        borderWidth: 3
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
                     scales: {
                         y: {
                             beginAtZero: true,
                             grid: {
                                 drawBorder: false,
-                                color: 'rgba(200, 200, 200, 0.15)'
+                                color: ctx => ctx.index === 0 ? 'rgba(0, 0, 0, 0)' : 'rgba(200, 200, 200, 0.1)'
                             },
                             ticks: {
                                 precision: 0,
                                 font: {
                                     size: 12
                                 },
-                                color: '#555'
+                                color: '#555',
+                                padding: 10
                             }
                         },
                         x: {
@@ -472,7 +587,8 @@ const Dashboard = () => {
                                 font: {
                                     size: 12
                                 },
-                                color: '#555'
+                                color: '#555',
+                                padding: 10
                             }
                         }
                     },
@@ -490,10 +606,44 @@ const Dashboard = () => {
                             padding: {
                                 top: 10,
                                 bottom: 20
-                            }
+                            },
+                            color: '#333'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#333',
+                            bodyColor: '#666',
+                            borderColor: 'rgba(200, 200, 200, 0.3)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            displayColors: true,
+                            boxWidth: 8,
+                            boxHeight: 8,
+                            boxPadding: 4,
+                            usePointStyle: true
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'shadow',
+                    beforeDraw: (chart) => {
+                        const ctx = chart.canvas.getContext('2d');
+                        ctx.save();
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+                        ctx.shadowBlur = 10;
+                        ctx.shadowOffsetX = 0;
+                        ctx.shadowOffsetY = 4;
+                        ctx.restore();
+                    }
+                }]
             });
         }
         
@@ -517,13 +667,20 @@ const Dashboard = () => {
                         data: counts,
                         backgroundColor: pieChartColors,
                         borderWidth: 0,
-                        hoverOffset: 10
+                        borderRadius: 4,
+                        hoverOffset: 15
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     cutout: '65%',
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
                             position: 'right',
@@ -533,7 +690,8 @@ const Dashboard = () => {
                                 },
                                 padding: 15,
                                 usePointStyle: true,
-                                pointStyle: 'circle'
+                                pointStyle: 'circle',
+                                color: '#333'
                             }
                         },
                         title: {
@@ -546,10 +704,53 @@ const Dashboard = () => {
                             padding: {
                                 top: 10,
                                 bottom: 20
+                            },
+                            color: '#333'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#333',
+                            bodyColor: '#666',
+                            borderColor: 'rgba(200, 200, 200, 0.3)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    let value = context.raw || 0;
+                                    let percentage = context.parsed ? 
+                                        (context.parsed * 100 / context.dataset.data.reduce((a, b) => a + b, 0)).toFixed(2) + '%' : 
+                                        '';
+                                    return `${label}: ${value} (${percentage})`;
+                                }
                             }
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'sourceLabels',
+                    afterDraw: (chart) => {
+                        const { ctx, data } = chart;
+                        ctx.save();
+                        const centerX = chart.chartArea.left + chart.chartArea.width / 2;
+                        const centerY = chart.chartArea.top + chart.chartArea.height / 2;
+                        
+                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                        
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = '16px sans-serif';
+                        ctx.fillStyle = '#333';
+                        ctx.fillText('总来源数', centerX, centerY - 10);
+                        
+                        ctx.font = 'bold 24px sans-serif';
+                        ctx.fillStyle = '#5e72e4';
+                        ctx.fillText(total, centerX, centerY + 15);
+                        
+                        ctx.restore();
+                    }
+                }]
             });
         }
     }, [data]);
@@ -619,14 +820,15 @@ const Dashboard = () => {
             <div className="dashboard-header d-flex justify-content-between align-items-center mb-4">
                 <h1>数据大屏</h1>
                 <div>
-                    <div className="text-muted mb-2">
+                    <div className="update-time mb-2">
                         最后更新: {lastUpdated ? lastUpdated.toLocaleString() : '未更新'}
                     </div>
                     <button 
-                        className="btn btn-primary" 
+                        className="btn btn-primary btn-refresh" 
                         onClick={handleRefresh}
                         disabled={loading}
                     >
+                        <i className="fas fa-sync-alt"></i>
                         {loading ? '刷新中...' : '刷新数据'}
                     </button>
                 </div>
@@ -637,7 +839,7 @@ const Dashboard = () => {
                     <div className="card">
                         <div className="card-header">
                             <div className="d-flex justify-content-between align-items-center">
-                                <span>实时预测信息</span>
+                                <span><i className="fas fa-history"></i> 实时预测信息</span>
                                 {data && data.realtime_detections && data.realtime_detections.length > recordsPerPage && (
                                     <div className="carousel-indicators">
                                         {Array.from({ length: Math.ceil(data.realtime_detections.length / recordsPerPage) }).map((_, index) => (
@@ -669,12 +871,50 @@ const Dashboard = () => {
                                     </thead>
                                     <tbody>
                                         {getCurrentPageRecords().map((detection, index) => (
-                                            <tr key={index} className="fade-in-row" style={{animation: `fadeIn 0.5s ease-in-out ${index * 0.1}s forwards`}}>
-                                                <td>{detection.username}</td>
-                                                <td>{detection.confidence_formatted}</td>
-                                                <td>{detection.detection_result}</td>
-                                                <td>{detection.page_name}</td>
-                                                <td>{detection.detection_date_formatted}</td>
+                                            <tr key={index} className="fade-in-row" style={{animationDelay: `${index * 0.1}s`}}>
+                                                <td>
+                                                    <div className="data-info">
+                                                        <div className="data-info-icon" style={{
+                                                            background: `linear-gradient(135deg, 
+                                                                hsl(${detection.username.charCodeAt(0) % 360}, 70%, 60%), 
+                                                                hsl(${(detection.username.charCodeAt(0) + 40) % 360}, 70%, 50%))`
+                                                        }}>
+                                                            {detection.username.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span className="data-info-text">{detection.username}</span>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <div className="progress-bar-container">
+                                                            <div 
+                                                                className="progress-bar" 
+                                                                style={{
+                                                                    width: detection.confidence_formatted && detection.confidence_formatted !== "无" ? 
+                                                                        detection.confidence_formatted.replace('%', '') + '%' : '0%'
+                                                                }}
+                                                            ></div>
+                                                        </div>
+                                                        <div>{detection.confidence_formatted}</div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span className={`badge ${detection.detection_result.includes('恶性') ? 'badge-danger' : detection.detection_result.includes('良性') ? 'badge-success' : 'badge-info'}`}>
+                                                        {detection.detection_result}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="data-info">
+                                                        <i className={`fas ${
+                                                            detection.page_name.includes('诊断') ? 'fa-search' : 
+                                                            detection.page_name.includes('分割') ? 'fa-crop-alt' : 
+                                                            detection.page_name.includes('视频') ? 'fa-video' : 
+                                                            'fa-brain'
+                                                        }`} style={{ color: '#5e72e4', marginRight: '8px' }}></i>
+                                                        {detection.page_name}
+                                                    </div>
+                                                </td>
+                                                <td className="time-text">{detection.detection_date_formatted}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -687,6 +927,12 @@ const Dashboard = () => {
                                     </span>
                                 </div>
                             )}
+                            {data && data.realtime_detections && data.realtime_detections.length === 0 && (
+                                <div className="empty-state">
+                                    <i className="fas fa-chart-bar"></i>
+                                    <p>暂无预测数据</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -695,8 +941,10 @@ const Dashboard = () => {
             <div className="row">
                 <div className="col-12 mb-4">
                     <div className="card">
-                        <div className="card-header">近十日预测数量</div>
-                        <div className="card-body" style={{height: '300px'}}>
+                        <div className="card-header">
+                            <i className="fas fa-calendar-alt"></i> 近十日预测数量
+                        </div>
+                        <div className="card-body chart-wrapper" style={{height: '300px'}}>
                             <canvas ref={recentDetectionsChartRef}></canvas>
                         </div>
                     </div>
@@ -706,8 +954,10 @@ const Dashboard = () => {
             <div className="row">
                 <div className="col-lg-6 mb-4">
                     <div className="card">
-                        <div className="card-header">不同结果的检测个数</div>
-                        <div className="card-body" style={{height: '350px'}}>
+                        <div className="card-header">
+                            <i className="fas fa-chart-pie"></i> 不同结果的检测个数
+                        </div>
+                        <div className="card-body chart-wrapper" style={{height: '350px'}}>
                             <canvas ref={tumorChartRef}></canvas>
                         </div>
                     </div>
@@ -715,8 +965,10 @@ const Dashboard = () => {
                 
                 <div className="col-lg-6 mb-4">
                     <div className="card">
-                        <div className="card-header">不同用户的预测个数</div>
-                        <div className="card-body" style={{height: '350px'}}>
+                        <div className="card-header">
+                            <i className="fas fa-users"></i> 不同用户的预测个数
+                        </div>
+                        <div className="card-body chart-wrapper" style={{height: '350px'}}>
                             <canvas ref={userDetectionChartRef}></canvas>
                         </div>
                     </div>
@@ -726,28 +978,21 @@ const Dashboard = () => {
             <div className="row">
                 <div className="col-lg-6 mb-4">
                     <div className="card">
-                        <div className="card-header">不同用户间的平均置信度</div>
-                        <div className="card-body" style={{height: '400px', position: 'relative'}}>
+                        <div className="card-header">
+                            <i className="fas fa-chart-line"></i> 不同用户间的平均置信度
+                        </div>
+                        <div className="card-body chart-wrapper" style={{height: '400px', position: 'relative'}}>
                             <canvas ref={userConfidenceChartRef}></canvas>
-                            {data && data.user_confidence.slice(0, 6).map((item, index) => {
-                                const confidence = item.confidence ? item.confidence.toFixed(2) + '%' : '未知';
-                                return (
-                                    <div key={index} className="radar-label" style={{
-                                        position: 'absolute',
-                                        visibility: 'hidden'
-                                    }}>
-                                        {item.username}<br/>{confidence}<br/>{item.detection_count}
-                                    </div>
-                                )
-                            })}
                         </div>
                     </div>
                 </div>
                 
                 <div className="col-lg-6 mb-4">
                     <div className="card">
-                        <div className="card-header">检测来源统计</div>
-                        <div className="card-body" style={{height: '400px'}}>
+                        <div className="card-header">
+                            <i className="fas fa-chart-bar"></i> 检测来源统计
+                        </div>
+                        <div className="card-body chart-wrapper" style={{height: '400px'}}>
                             <canvas ref={detectionSourceChartRef}></canvas>
                         </div>
                     </div>
