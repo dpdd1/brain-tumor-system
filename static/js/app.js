@@ -152,7 +152,7 @@ const Dashboard = () => {
             }
             
             // 固定的肿瘤类型标签
-            const fixedLabels = ['脑膜瘤', '垂体瘤', '胶质瘤', '无脑肿瘤'];
+            const fixedLabels = ['正常', '胶质瘤', '脑膜瘤', '垂体'];
             
             // 处理数据
             const tumorMap = {};
@@ -166,20 +166,30 @@ const Dashboard = () => {
             
             // 根据固定标签获取对应值，如果没有则为0
             const counts = fixedLabels.map(label => {
-                // 处理一些可能的匹配
-                if (label === '脑膜瘤') {
-                    return tumorMap['脑膜瘤'] || tumorMap['meningioma'] || 0;
-                } else if (label === '垂体瘤') {
-                    return tumorMap['垂体瘤'] || tumorMap['pituitary'] || tumorMap['pituitary tumor'] || 0;
+                if (label === '正常') {
+                    return tumorMap['正常'] || tumorMap['no tumor'] || tumorMap['normal'] || tumorMap['无脑肿瘤'] || 0;
                 } else if (label === '胶质瘤') {
                     return tumorMap['胶质瘤'] || tumorMap['glioma'] || 0;
-                } else if (label === '无脑肿瘤') {
-                    return tumorMap['正常'] || tumorMap['no tumor'] || tumorMap['normal'] || tumorMap['无脑肿瘤'] || 0;
+                } else if (label === '脑膜瘤') {
+                    return tumorMap['脑膜瘤'] || tumorMap['meningioma'] || 0;
+                } else if (label === '垂体') {
+                    return tumorMap['垂体瘤'] || tumorMap['垂体'] || tumorMap['pituitary'] || tumorMap['pituitary tumor'] || 0;
                 }
                 return 0;
             });
+
+            // 渐变配色方案
+            const gradientColors = [
+                ['rgba(220, 210, 255, 0.8)', 'rgba(180, 160, 240, 0.8)'],  // 淡紫色
+                ['rgba(220, 210, 255, 0.8)', 'rgba(180, 160, 240, 0.8)'],  // 淡紫色
+                ['rgba(220, 210, 255, 0.8)', 'rgba(180, 160, 240, 0.8)'],  // 淡紫色
+                ['rgba(220, 210, 255, 0.8)', 'rgba(180, 160, 240, 0.8)']   // 淡紫色
+            ];
             
-            // 创建图表
+            // 注册Chart.js插件
+            Chart.register(ChartDataLabels);
+            
+            // 创建图表 - 美化版
             tumorChartInstance.current = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -187,24 +197,50 @@ const Dashboard = () => {
                     datasets: [{
                         label: '检测次数',
                         data: counts,
-                        backgroundColor: [
-                            pieChartColors[0],
-                            pieChartColors[1],
-                            pieChartColors[2],
-                            pieChartColors[3]
-                        ],
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) {
+                                return 'rgba(203, 186, 249, 0.8)';
+                            }
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(220, 210, 255, 0.75)');
+                            gradient.addColorStop(1, 'rgba(180, 160, 240, 0.75)');
+                            return gradient;
+                        },
+                        hoverBackgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) {
+                                return 'rgba(180, 160, 240, 0.9)';
+                            }
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(220, 210, 255, 0.9)');
+                            gradient.addColorStop(1, 'rgba(180, 160, 240, 0.9)');
+                            return gradient;
+                        },
                         borderWidth: 0,
-                        borderRadius: 8,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.7,
+                        borderRadius: 12,
+                        borderSkipped: false,
+                        barPercentage: 0.55,
+                        categoryPercentage: 0.8,
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            left: 20,
+                            right: 20,
+                            top: 30,
+                            bottom: 20
+                        }
+                    },
                     animation: {
-                        duration: 1000,
-                        easing: 'easeOutQuart'
+                        duration: 1200,
+                        easing: 'easeOutQuart',
+                        delay: (context) => context.dataIndex * 150
                     },
                     plugins: {
                         legend: {
@@ -214,69 +250,123 @@ const Dashboard = () => {
                             display: true,
                             text: '不同结果的检测个数',
                             font: {
-                                size: 16,
-                                weight: 'normal'
+                                size: 18,
+                                weight: '500',
+                                family: "'Microsoft YaHei', sans-serif",
                             },
                             padding: {
-                                top: 10,
+                                top: 0,
                                 bottom: 20
                             },
-                            color: '#333'
+                            color: '#333',
+                            align: 'start'
                         },
                         tooltip: {
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            enabled: true,
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
                             titleColor: '#333',
-                            bodyColor: '#666',
-                            borderColor: 'rgba(200, 200, 200, 0.3)',
-                            borderWidth: 1,
+                            bodyColor: '#555',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
                             padding: 12,
                             cornerRadius: 8,
-                            displayColors: true,
-                            usePointStyle: true
+                            displayColors: false,
+                            caretSize: 6,
+                            caretPadding: 8,
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    return `检测个数: ${context.raw}`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: true,
+                            align: 'end',
+                            anchor: 'end',
+                            offset: -4,
+                            formatter: function(value) {
+                                return value > 0 ? value : '';
+                            },
+                            color: '#666',
+                            font: {
+                                weight: 'bold',
+                                size: 13,
+                                family: "'Microsoft YaHei', sans-serif",
+                            },
+                            padding: {
+                                top: 4
+                            }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             grid: {
+                                color: 'rgba(220, 220, 220, 0.1)',
+                                lineWidth: 1,
                                 drawBorder: false,
-                                color: ctx => ctx.index === 0 ? 'rgba(0, 0, 0, 0)' : 'rgba(200, 200, 200, 0.1)'
+                                drawTicks: false
+                            },
+                            border: {
+                                display: false
                             },
                             ticks: {
+                                padding: 10,
                                 font: {
-                                    size: 12
+                                    size: 12,
+                                    family: "'Microsoft YaHei', sans-serif"
                                 },
-                                color: '#555',
-                                padding: 10
+                                color: '#888',
+                                callback: function(value) {
+                                    if (Math.floor(value) === value) {
+                                        return value;
+                                    }
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '个数',
+                                font: {
+                                    size: 13,
+                                    family: "'Microsoft YaHei', sans-serif"
+                                },
+                                color: '#888',
+                                padding: {top: 0, bottom: 10}
                             }
                         },
                         x: {
                             grid: {
                                 display: false
                             },
+                            border: {
+                                display: false
+                            },
                             ticks: {
+                                padding: 10,
                                 font: {
-                                    size: 12
+                                    size: 13,
+                                    family: "'Microsoft YaHei', sans-serif"
                                 },
-                                color: '#555',
-                                padding: 10
+                                color: '#555'
                             }
                         }
                     }
-                },
-                plugins: [{
-                    id: 'shadow',
-                    beforeRender: (chart) => {
-                        const ctx = chart.ctx;
-                        ctx.save();
-                        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-                        ctx.shadowBlur = 10;
-                        ctx.shadowOffsetX = 0;
-                        ctx.shadowOffsetY = 4;
-                        ctx.restore();
-                    }
-                }]
+                }
             });
+            
+            // 获取图表容器并添加美化类
+            const chartWrapper = tumorChartRef.current.closest('.chart-wrapper');
+            if (chartWrapper) {
+                chartWrapper.classList.add('detection-results');
+            }
         }
         
         // 更新用户检测数量图表
@@ -817,10 +907,10 @@ const Dashboard = () => {
                 </div>
             )}
             
-            <div className="dashboard-header d-flex justify-content-between align-items-center mb-4">
+            <div className="dashboard-title-area">
                 <h1>数据大屏</h1>
                 <div>
-                    <div className="update-time mb-2">
+                    <div className="update-time">
                         最后更新: {lastUpdated ? lastUpdated.toLocaleString() : '未更新'}
                     </div>
                     <button 
@@ -957,7 +1047,7 @@ const Dashboard = () => {
                         <div className="card-header">
                             <i className="fas fa-chart-pie"></i> 不同结果的检测个数
                         </div>
-                        <div className="card-body chart-wrapper" style={{height: '350px'}}>
+                        <div className="card-body chart-wrapper" style={{height: '350px', background: '#ffffff', padding: '0 10px 10px 0'}}>
                             <canvas ref={tumorChartRef}></canvas>
                         </div>
                     </div>

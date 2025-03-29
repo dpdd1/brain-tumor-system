@@ -1,13 +1,14 @@
 body {
     font-family: 'Microsoft YaHei', sans-serif;
     background-color: #f8fafc;
-    padding: 20px;
+    padding: 10px 20px 20px 20px;
 }
 
 .dashboard {
     max-width: 1200px;
     margin: 0 auto;
     animation: fadeIn 0.5s ease-in-out;
+    padding-top: 0;
 }
 
 @keyframes fadeIn {
@@ -23,16 +24,19 @@ body {
 
 .dashboard-header {
     background-color: #fff;
-    padding: 20px;
+    padding: 15px 20px;
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .card {
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     background-color: #fff;
     border: none;
     overflow: hidden;
@@ -236,6 +240,8 @@ body {
     color: #333;
     transition: all 0.3s ease;
     letter-spacing: -0.5px;
+    margin: 0;
+    font-size: 1.8rem;
 }
 
 .dashboard-header h1:hover {
@@ -265,6 +271,7 @@ body {
 .update-time {
     font-size: 0.85rem;
     color: #718096;
+    margin-bottom: 5px !important;
 }
 
 /* 数据详情 */
@@ -445,4 +452,118 @@ body {
 .tooltip-data {
     font-weight: 600;
     color: #333;
+}
+
+/* 菜单栏刷新按钮样式 */
+.header-refresh-container {
+    display: flex;
+    align-items: center;
+    margin-top: 3px;
+    margin-left: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 3px 8px;
+    border-radius: 8px;
+    backdrop-filter: blur(5px);
+}
+
+.header-refresh-btn {
+    font-size: 0.85rem;
+    padding: 4px 8px;
+    margin-left: 8px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.row {
+    margin-bottom: 10px;
+}
+
+.dashboard-title-area {
+    padding: 0;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 12px 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-title-area h1 {
+    font-weight: 600;
+    color: #333;
+    transition: all 0.3s ease;
+    letter-spacing: -0.5px;
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.dashboard-title-area .update-time {
+    font-size: 0.85rem;
+    color: #718096;
+    margin-bottom: 5px;
+}
+
+/* 美化图表样式 */
+.chart-wrapper.detection-results {
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.chart-wrapper.detection-results:before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    height: 6px;
+    background: linear-gradient(90deg, #c5b3ff, #e2dcff);
+    border-radius: 6px;
+    opacity: 0.7;
+}
+
+.chart-wrapper.detection-results canvas {
+    margin-top: 10px;
+}
+
+/* 数据标签样式 */
+.chart-data-label {
+    font-weight: 600;
+    font-size: 12px;
+    color: #666;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* 图表轴线样式 */
+.chart-axis-line {
+    stroke: #f0f0f0;
+    stroke-width: 1;
+}
+
+/* 图表网格线样式 */
+.chart-grid-line {
+    stroke: rgba(240, 240, 240, 0.5);
+    stroke-dasharray: 3, 3;
+}
+
+/* 更好的柱状图渐变 */
+.beautiful-bar-gradient {
+    position: relative;
+}
+
+.beautiful-bar-gradient:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+    border-radius: 6px 6px 0 0;
+    pointer-events: none;
 } 
