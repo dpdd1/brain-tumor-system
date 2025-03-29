@@ -100,10 +100,11 @@ body {
 /* 医学元素动画 */
 .medical-element {
     position: absolute;
-    opacity: 0.6;
+    opacity: 0.6;  /* 增加基础不透明度 */
     animation: pulse 8s infinite ease-in-out;
     z-index: 1;
-    filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.6));
+    filter: drop-shadow(0 0 12px rgba(33, 150, 243, 0.8)); /* 增强发光效果 */
+    transition: all 0.3s ease;
 }
 
 .brain-icon {
@@ -112,6 +113,8 @@ body {
     top: 15%;
     left: 10%;
     animation-delay: 1s;
+    animation: float-rotate 8s infinite ease-in-out; /* 加快动画速度 */
+    filter: drop-shadow(0 0 15px rgba(33, 150, 243, 0.8)); /* 增强发光效果 */
 }
 
 .dna-helix {
@@ -120,7 +123,8 @@ body {
     bottom: 10%;
     left: 15%;
     animation-delay: 3s;
-    animation: float-rotate 15s infinite ease-in-out;
+    animation: float-rotate 10s infinite ease-in-out; /* 加快动画速度 */
+    filter: drop-shadow(0 0 15px rgba(76, 175, 80, 0.8)); /* 增强发光效果 */
 }
 
 .ecg-line {
@@ -129,7 +133,8 @@ body {
     top: 20%;
     right: 15%;
     animation-delay: 2s;
-    animation: pulse-horizontal 12s infinite ease-in-out;
+    animation: pulse-horizontal 6s infinite ease-in-out; /* 加快动画速度 */
+    filter: drop-shadow(0 0 15px rgba(233, 30, 99, 0.8)); /* 增强发光效果 */
 }
 
 .neuron {
@@ -138,7 +143,8 @@ body {
     bottom: 25%;
     right: 20%;
     animation-delay: 4s;
-    animation: pulse-rotate 10s infinite ease-in-out;
+    animation: pulse-rotate 7s infinite ease-in-out; /* 加快动画速度 */
+    filter: drop-shadow(0 0 15px rgba(156, 39, 176, 0.8)); /* 增强发光效果 */
 }
 
 .molecule {
@@ -147,7 +153,8 @@ body {
     top: 40%;
     left: 25%;
     animation-delay: 5s;
-    animation: float-scale 12s infinite ease-in-out;
+    animation: float-scale 6s infinite ease-in-out; /* 加快动画速度 */
+    filter: drop-shadow(0 0 15px rgba(255, 152, 0, 0.8)); /* 增强发光效果 */
 }
 
 /* 新增医学元素样式 */
@@ -208,85 +215,82 @@ body {
 
 @keyframes float {
     0% {
-        transform: translateY(0) rotate(0deg);
+        transform: translate(0, 0) rotate(0deg);
     }
     50% {
-        transform: translateY(-30px) rotate(15deg);
+        transform: translate(30px, 30px) rotate(10deg); /* 增加移动距离 */
     }
     100% {
-        transform: translateY(0) rotate(0deg);
+        transform: translate(0, 0) rotate(0deg);
     }
 }
 
 @keyframes pulse {
-    0% {
+    0%, 100% {
         transform: scale(1);
-        opacity: 0.6;
+        opacity: 0.4; /* 增加最低不透明度 */
     }
     50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 0.6;
+        transform: scale(1.3); /* 增加缩放比例 */
+        opacity: 0.9; /* 增加最高不透明度 */
     }
 }
 
 @keyframes float-rotate {
     0% {
-        transform: translateY(0) rotate(0deg);
+        transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+        transform: translate(20px, -20px) rotate(90deg); /* 增加移动距离 */
     }
     50% {
-        transform: translateY(-20px) rotate(10deg);
+        transform: translate(0, -40px) rotate(180deg); /* 增加移动距离 */
+    }
+    75% {
+        transform: translate(-20px, -20px) rotate(270deg);
     }
     100% {
-        transform: translateY(0) rotate(0deg);
+        transform: translate(0, 0) rotate(360deg);
     }
 }
 
 @keyframes pulse-horizontal {
-    0% {
-        transform: translateX(0);
-        opacity: 0.6;
+    0%, 100% {
+        transform: scaleX(1) translateX(0);
+        opacity: 0.4;
     }
     50% {
-        transform: translateX(20px);
-        opacity: 0.8;
-    }
-    100% {
-        transform: translateX(0);
-        opacity: 0.6;
+        transform: scaleX(1.2) translateX(30px); /* 增加水平位移和缩放 */
+        opacity: 0.9;
     }
 }
 
 @keyframes pulse-rotate {
-    0% {
+    0%, 100% {
         transform: scale(1) rotate(0deg);
-        opacity: 0.6;
+        opacity: 0.4;
     }
     50% {
-        transform: scale(1.15) rotate(10deg);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1) rotate(0deg);
-        opacity: 0.6;
+        transform: scale(1.25) rotate(180deg); /* 增加缩放比例 */
+        opacity: 0.9;
     }
 }
 
 @keyframes float-scale {
     0% {
-        transform: translateY(0) scale(1);
-        opacity: 0.6;
+        transform: translate(0, 0) scale(1);
+    }
+    25% {
+        transform: translate(20px, -20px) scale(1.2); /* 增加移动距离和缩放 */
     }
     50% {
-        transform: translateY(-15px) scale(1.2);
-        opacity: 0.8;
+        transform: translate(0px, -30px) scale(1.4); /* 增加移动距离和缩放 */
+    }
+    75% {
+        transform: translate(-20px, -10px) scale(1.2);
     }
     100% {
-        transform: translateY(0) scale(1);
-        opacity: 0.6;
+        transform: translate(0, 0) scale(1);
     }
 }
 
@@ -1648,6 +1652,222 @@ table td {
     z-index: -1;
     overflow: hidden;
     background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(240,248,255,0.9) 100%);
+}
+
+/* 内部页面背景形状 */
+.page-background .shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(33, 150, 243, 0.08);
+    animation: float 10s infinite ease-in-out;
+    box-shadow: 0 0 15px rgba(33, 150, 243, 0.2);
+    backdrop-filter: blur(5px);
+    opacity: 0.15;
+}
+
+.page-background .shape1 {
+    background: linear-gradient(135deg, #90caf9, #64b5f6);  /* 更淡的蓝色 */
+    width: 400px;
+    height: 400px;
+    top: -200px;
+    left: -200px;
+    animation: float 12s ease-in-out infinite;
+}
+
+.page-background .shape2 {
+    background: linear-gradient(135deg, #a5d6a7, #81c784);  /* 更淡的绿色 */
+    width: 300px;
+    height: 300px;
+    bottom: -150px;
+    right: -150px;
+    animation: float 10s ease-in-out infinite;
+}
+
+.page-background .shape3 {
+    background: linear-gradient(135deg, #b39ddb, #9575cd);  /* 更淡的紫色 */
+    width: 250px;
+    height: 250px;
+    top: 50%;
+    right: -100px;
+    animation: float 15s ease-in-out infinite;
+}
+
+.page-background .shape4 {
+    background: linear-gradient(135deg, #81d4fa, #4fc3f7);  /* 更淡的天蓝色 */
+    width: 200px;
+    height: 200px;
+    bottom: 10%;
+    left: 10%;
+    animation: float 9s ease-in-out infinite;
+}
+
+.page-background .shape5 {
+    background: linear-gradient(135deg, #ffcc80, #ffb74d);  /* 更淡的橙色 */
+    width: 180px;
+    height: 180px;
+    top: 30%;
+    left: 40%;
+    animation: float 14s ease-in-out infinite;
+}
+
+.page-background .shape6 {
+    background: linear-gradient(135deg, #f48fb1, #ec407a);  /* 更淡的粉色 */
+    width: 220px;
+    height: 220px;
+    top: 70%;
+    right: 30%;
+    animation: float 16s ease-in-out infinite;
+}
+
+/* 内部页面医学元素 */
+.page-background .medical-element {
+    position: absolute;
+    opacity: 0.25;
+    z-index: -1;
+    pointer-events: none;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+}
+
+.page-background .brain-icon {
+    width: 100px;
+    top: 15%;
+    right: 10%;
+    animation: pulse 15s infinite;
+}
+
+.page-background .dna-helix {
+    width: 80px;
+    bottom: 20%;
+    left: 15%;
+    animation: rotate 30s linear infinite;
+}
+
+.page-background .neuron {
+    width: 120px;
+    top: 40%;
+    left: 5%;
+    animation: pulse 20s infinite;
+}
+
+.page-background .ecg-line {
+    width: 150px;
+    top: 25%;
+    left: 20%;
+    animation: pulse 12s infinite;
+}
+
+.page-background .molecule {
+    width: 70px;
+    bottom: 15%;
+    right: 20%;
+    animation: rotate 25s linear infinite;
+}
+
+.page-background .brain-scan {
+    width: 120px;
+    top: 70%;
+    right: 5%;
+    animation: pulse 18s infinite;
+}
+
+.page-background .microscope {
+    width: 90px;
+    bottom: 40%;
+    right: 25%;
+    animation: float 15s infinite;
+}
+
+.page-background .cell {
+    width: 60px;
+    top: 60%;
+    left: 25%;
+    animation: rotate 20s linear infinite;
+}
+
+.page-background .medical-cross {
+    width: 50px;
+    top: 10%;
+    left: 30%;
+    animation: pulse 10s infinite;
+}
+
+.page-background .pulse {
+    width: 100px;
+    bottom: 10%;
+    left: 40%;
+    animation: pulse 14s infinite;
+}
+
+/* 额外医学元素 */
+.page-background .neuron-2 {
+    width: 100px;
+    top: 85%;
+    left: 75%;
+    animation: pulse 22s infinite;
+}
+
+.page-background .brain-icon-2 {
+    width: 90px;
+    top: 35%;
+    right: 45%;
+    animation: float 17s infinite;
+}
+
+.page-background .dna-helix-2 {
+    width: 70px;
+    bottom: 65%;
+    left: 65%;
+    animation: rotate 28s linear infinite;
+}
+
+.page-background .molecule-2 {
+    width: 80px;
+    top: 55%;
+    right: 70%;
+    animation: rotate 20s linear infinite;
+}
+
+.page-background .medical-cross-2 {
+    width: 60px;
+    top: 75%;
+    left: 10%;
+    animation: pulse 13s infinite;
+}
+
+.page-background .cell-2 {
+    width: 55px;
+    top: 20%;
+    left: 60%;
+    animation: rotate 18s linear infinite;
+}
+
+.page-background .brain-scan-2 {
+    width: 110px;
+    top: 5%;
+    right: 60%;
+    animation: pulse 16s infinite;
+}
+
+.page-background .pulse-2 {
+    width: 85px;
+    bottom: 30%;
+    left: 55%;
+    animation: pulse 19s infinite;
+}
+
+.page-background .ecg-line-2 {
+    width: 130px;
+    top: 45%;
+    right: 15%;
+    animation: pulse 14s infinite;
+}
+
+.page-background .microscope-2 {
+    width: 75px;
+    bottom: 55%;
+    right: 50%;
+    animation: float 18s infinite;
 }
 
 /* 卡片容器样式 */

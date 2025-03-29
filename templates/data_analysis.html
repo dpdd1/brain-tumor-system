@@ -8,11 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
     <style>
         body {
             background-color: #f8f9fa;
-            font-family: 'Segoe UI', 'Microsoft YaHei', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
         }
@@ -28,8 +27,8 @@
 
         .card {
             background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 20px;
             margin-bottom: 20px;
         }
@@ -72,59 +71,11 @@
         }
 
         .data-card-title i {
-            color: #5e72e4;
+            color: #2196F3;
         }
 
         .data-card-content {
             min-height: 200px;
-        }
-        
-        /* 图表容器 */
-        .chart-wrapper {
-            padding: 15px;
-            border-radius: 12px;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
-            transition: all 0.3s ease;
-        }
-        
-        .chart-wrapper:hover {
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
-            transform: translateY(-2px);
-        }
-        
-        /* 表格增强效果 */
-        .table th {
-            font-weight: 600;
-            color: #4a5568;
-            border-top: none;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        
-        .table td {
-            vertical-align: middle;
-        }
-        
-        /* 刷新按钮效果增强 */
-        .btn-refresh {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 8px;
-        }
-        
-        .btn-refresh i {
-            transition: transform 0.5s ease;
-        }
-        
-        .btn-refresh:hover i {
-            transform: rotate(180deg);
-        }
-        
-        /* 更新时间样式 */
-        .update-time {
-            font-size: 0.85rem;
-            color: #718096;
         }
     </style>
 </head>
@@ -135,6 +86,37 @@
         <div class="shape shape1"></div>
         <div class="shape shape2"></div>
         <div class="shape shape3"></div>
+        <div class="shape shape4"></div>
+        <div class="shape shape5"></div>
+        <div class="shape shape6"></div>
+        
+        <!-- 医学元素 -->
+        <img src="{{ url_for('static', filename='images/brain-icon.svg') }}" class="medical-element brain-icon" alt="脑图标">
+        <img src="{{ url_for('static', filename='images/dna-helix.svg') }}" class="medical-element dna-helix" alt="DNA双螺旋">
+        <img src="{{ url_for('static', filename='images/ecg-line.svg') }}" class="medical-element ecg-line" alt="心电图">
+        <img src="{{ url_for('static', filename='images/neuron.svg') }}" class="medical-element neuron" alt="神经元">
+        <img src="{{ url_for('static', filename='images/molecule.svg') }}" class="medical-element molecule" alt="分子结构">
+        
+        <!-- 新增医学元素 -->
+        <img src="{{ url_for('static', filename='images/brain-scan.svg') }}" class="medical-element brain-scan" alt="脑扫描">
+        <img src="{{ url_for('static', filename='images/microscope.svg') }}" class="medical-element microscope" alt="显微镜">
+        <img src="{{ url_for('static', filename='images/cell.svg') }}" class="medical-element cell" alt="细胞">
+        <img src="{{ url_for('static', filename='images/medical-cross.svg') }}" class="medical-element medical-cross" alt="医疗十字">
+        <img src="{{ url_for('static', filename='images/pulse.svg') }}" class="medical-element pulse" alt="脉搏">
+        
+        <!-- 额外增加医学元素 -->
+        <img src="{{ url_for('static', filename='images/neuron.svg') }}" class="medical-element neuron-2" alt="神经元2">
+        <img src="{{ url_for('static', filename='images/brain-icon.svg') }}" class="medical-element brain-icon-2" alt="脑图标2">
+        <img src="{{ url_for('static', filename='images/dna-helix.svg') }}" class="medical-element dna-helix-2" alt="DNA双螺旋2">
+        <img src="{{ url_for('static', filename='images/molecule.svg') }}" class="medical-element molecule-2" alt="分子结构2">
+        <img src="{{ url_for('static', filename='images/medical-cross.svg') }}" class="medical-element medical-cross-2" alt="医疗十字2">
+        <img src="{{ url_for('static', filename='images/cell.svg') }}" class="medical-element cell-2" alt="细胞2">
+        <img src="{{ url_for('static', filename='images/brain-scan.svg') }}" class="medical-element brain-scan-2" alt="脑扫描2">
+        <img src="{{ url_for('static', filename='images/pulse.svg') }}" class="medical-element pulse-2" alt="脉搏2">
+        <img src="{{ url_for('static', filename='images/ecg-line.svg') }}" class="medical-element ecg-line-2" alt="心电图2">
+        <img src="{{ url_for('static', filename='images/microscope.svg') }}" class="medical-element microscope-2" alt="显微镜2">
+        
+        <!-- 粒子效果 -->
         <div class="particles-container" id="particles-js"></div>
     </div>
 
@@ -171,7 +153,7 @@
 
     <!-- 主内容 -->
     <div class="main-content">
-        <div id="root"class="animate__animated animate__fadeIn animate__faster"></div>
+        <div id="root"></div>
     </div>
     
     <!-- React和ReactDOM库 -->
@@ -181,8 +163,6 @@
     
     <!-- 图表库 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <script src="{{ url_for('static', filename='js/chart-config.js') }}"></script>
     
     <!-- 粒子背景 -->
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>

@@ -1000,119 +1000,16 @@
             return true;
         });
         
-        // 粒子效果配置并添加鼠标交互
-        if (typeof particlesJS !== 'undefined') {
-            particlesJS('particles-js', {
-                "particles": {
-                    "number": {
-                        "value": 80,  // 减少粒子数量，从而减少线条
-                        "density": {
-                            "enable": true,
-                            "value_area": 800
-                        }
-                    },
-                    "color": {
-                        "value": ["#2196f3", "#64b5f6", "#bbdefb", "#4caf50", "#9c27b0"]
-                    },
-                    "shape": {
-                        "type": ["circle", "triangle"],
-                        "stroke": {
-                            "width": 0,
-                            "color": "#000000"
-                        },
-                        "polygon": {
-                            "nb_sides": 5
-                        }
-                    },
-                    "opacity": {
-                        "value": 0.6,
-                        "random": true,
-                        "anim": {
-                            "enable": true,
-                            "speed": 1,
-                            "opacity_min": 0.1,
-                            "sync": false
-                        }
-                    },
-                    "size": {
-                        "value": 3,
-                        "random": true,
-                        "anim": {
-                            "enable": true,
-                            "speed": 5,
-                            "size_min": 0.1,
-                            "sync": false
-                        }
-                    },
-                    "line_linked": {
-                        "enable": true,
-                        "distance": 150,
-                        "color": "#2196f3",
-                        "opacity": 0.4,
-                        "width": 1.5
-                    },
-                    "move": {
-                        "enable": true,
-                        "speed": 3,
-                        "direction": "none",
-                        "random": true,
-                        "straight": false,
-                        "out_mode": "bounce",
-                        "bounce": true,
-                        "attract": {
-                            "enable": true,
-                            "rotateX": 600,
-                            "rotateY": 1200
-                        }
-                    }
-                },
-                "interactivity": {
-                    "detect_on": "window",
-                    "events": {
-                        "onhover": {
-                            "enable": true,
-                            "mode": "grab"
-                        },
-                        "onclick": {
-                            "enable": true,
-                            "mode": "connect"  // 修改为connect模式，允许点击连接粒子
-                        },
-                        "resize": true
-                    },
-                    "modes": {
-                        "grab": {
-                            "distance": 180,
-                            "line_linked": {
-                                "opacity": 0.8
-                            }
-                        },
-                        "bubble": {
-                            "distance": 200,
-                            "size": 6,
-                            "duration": 2,
-                            "opacity": 0.8,
-                            "speed": 3
-                        },
-                        "repulse": {
-                            "distance": 200,
-                            "duration": 0.4
-                        },
-                        "push": {
-                            "particles_nb": 4
-                        },
-                        "remove": {
-                            "particles_nb": 2
-                        },
-                        "connect": {  // 新增connect模式配置
-                            "distance": 250,
-                            "line_linked": {
-                                "opacity": 0.6
-                            }
-                        }
-                    }
-                },
-                "retina_detect": true
-            });
+        // 使用外部粒子效果配置 - 粒子效果配置已经移至 particles-config.js 文件中
+        // 如果页面元素存在但particlesJS未定义，添加脚本元素动态加载
+        if (document.getElementById('particles-js') && typeof particlesJS === 'undefined') {
+            const script = document.createElement('script');
+            script.src = "https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js";
+            script.onload = function() {
+                console.log('粒子库加载成功');
+                // 配置会通过particles-config.js自动应用
+            };
+            document.head.appendChild(script);
         }
     });
 
@@ -1170,41 +1067,28 @@
         
         // 背景形状跟随鼠标移动
         document.querySelectorAll('.shape').forEach(shape => {
-            const shiftX = relativeX * 10; // 水平移动幅度
-            const shiftY = relativeY * 10; // 垂直移动幅度
+            const shiftX = relativeX * 20; // 增加水平移动幅度
+            const shiftY = relativeY * 20; // 增加垂直移动幅度
             
             // 应用轻微的位移
             shape.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
         });
         
-        // 医学元素跟随鼠标移动（反向效果增强视差感）
-        document.querySelectorAll('.medical-element').forEach(element => {
-            // 计算元素位置与鼠标的距离
-            const rect = element.getBoundingClientRect();
-            const elementX = rect.left + rect.width / 2;
-            const elementY = rect.top + rect.height / 2;
-            
-            // 距离鼠标越近，移动越明显
-            const distance = Math.sqrt(
-                Math.pow(mouseX - elementX, 2) + 
-                Math.pow(mouseY - elementY, 2)
-            );
-            
-            // 计算移动方向和幅度（反向移动）
-            const maxDistance = Math.sqrt(windowWidth * windowWidth + windowHeight * windowHeight) / 2;
-            const moveRatio = (1 - Math.min(distance, maxDistance) / maxDistance) * 15;
-            
-            const moveX = (elementX - mouseX) / distance * moveRatio;
-            const moveY = (elementY - mouseY) / distance * moveRatio;
-            
-            // 应用变换
-            element.style.transform = `translate(${moveX}px, ${moveY}px) scale(${1 + moveRatio/100})`;
-            
-            // 距离鼠标近时增加不透明度
-            const opacityBoost = (1 - Math.min(distance, maxDistance) / maxDistance) * 0.3;
-            element.style.opacity = 0.25 + opacityBoost;
-        });
+        // 注意：医学元素的鼠标跟随效果已被移除，现在它们只有自己的动画效果
     });
+
+    // 检查表单有效性
+    function validateLoginForm() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        if (!username || !password) {
+            document.getElementById('login-error').innerText = '请填写用户名和密码';
+            document.getElementById('login-error').style.display = 'block';
+            return false;
+        }
+        return true;
+    }
     </script>
 </body>
 </html>

@@ -364,7 +364,7 @@ def login():
             except Exception as e:
                 print(f"更新用户表结构时出错: {str(e)}")
             
-            return redirect(url_for('diagnosis'))
+            return redirect(url_for('data_analysis'))
         else:
             flash('用户名或密码错误')
     return render_template('login.html')
@@ -528,7 +528,7 @@ def register():
                 session['bio'] = '这个人很懒，什么都没有留下。'
                 
             flash('注册成功，已自动登录')
-            return redirect(url_for('diagnosis'))
+            return redirect(url_for('data_analysis'))
         else:
             flash('注册成功，请登录')
     except sqlite3.IntegrityError:
@@ -608,7 +608,8 @@ def upload_diagnosis():
                 'has_tumor': has_tumor,
                 'confidence': float(boxes.conf[0]) * 100 if has_tumor else 0,
                 'original_image': f"/static/uploads/{filename}",
-                'result_image': f"/static/results/{result_filename}"
+                'result_image': f"/static/results/{result_filename}",
+                'recommendation': "发现肿瘤，建议及时进行进一步检查和治疗。请咨询专业医生以获取详细的治疗方案。" if has_tumor else "未发现肿瘤，建议定期复查。保持健康的生活方式可以降低脑部疾病风险。"
             }
             
             # 自动保存到治疗记录

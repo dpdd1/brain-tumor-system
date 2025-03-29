@@ -4,34 +4,50 @@ __pycache__/
 *$py.class
 *.so
 .Python
+*.pyc
+__pycache__/
+*.pyo
+.pytest_cache/
 
 # 虚拟环境
 brain_env/
 env/
 venv/
 ENV/
+.venv/
 
 # IDE配置文件
 .idea/
 .vscode/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
-# 项目临时文件
+# 项目上传和结果文件
 static/uploads/*
 static/results/*
+static/avatars/*
+static/records/*
 !static/uploads/.gitkeep
 !static/results/.gitkeep
+!static/avatars/.gitkeep
+!static/avatars/default-avatar.png
+!static/records/.gitkeep
 
 # 数据库文件
 *.db
 *.sqlite3
+*.sqlite
 
 # 临时文件
 .DS_Store
 Thumbs.db
 *.log
 *.tmp
+.~lock.*
+thumbs.db
+desktop.ini
 
 # 测试文件
 test*.py
@@ -39,8 +55,19 @@ test*.html
 temp*.py
 *_temp.py
 
+# 模型文件（如果需要版本控制，可以注释掉这些行）
+# models/*.pt
+# models/*.pth
+# models/*.h5
+
 # 杂项
 .env
 .coverage
 htmlcov/
 clean_avatars.py
+api_fix.py
+*.bak
+*.swp
+*.pid
+*.seed
+*.pid.lock
