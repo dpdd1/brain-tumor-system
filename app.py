@@ -546,7 +546,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# 肿瘤诊断页面
+# 肿瘤检测页面
 @app.route('/diagnosis')
 def diagnosis():
     if not session.get('logged_in'):

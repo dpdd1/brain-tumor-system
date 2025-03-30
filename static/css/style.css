@@ -598,13 +598,14 @@ header {
     z-index: 100;
     width: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
 }
 
 .logo {
     display: flex;
     align-items: center;
+    min-width: 200px; /* 确保LOGO有一个最小宽度 */
+    margin-right: 30px; /* 增加右侧间距，与导航菜单保持距离 */
 }
 
 .logo-text {
@@ -622,7 +623,7 @@ header {
 nav {
     flex: 1;
     display: flex;
-    justify-content: flex-end;
+    justify-content: center; /* 将导航居中而不是靠右 */
 }
 
 nav ul {
@@ -630,18 +631,27 @@ nav ul {
     align-items: center;
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0 0 0 20px; /* 增加左侧内边距 */
+    width: 100%; /* 使用整个导航区域的宽度 */
+    justify-content: space-between; /* 均匀分布导航项目 */
 }
 
 nav li {
-    margin: 0 5px;
     position: relative;
+    flex: 1; /* 让每个导航项占据相同的空间 */
+    text-align: center; /* 文本居中 */
+}
+
+nav li.user-profile {
+    flex: initial; /* 用户头像不参与均匀分布 */
+    margin-left: 20px; /* 与其他导航项保持一定距离 */
 }
 
 nav a {
     display: flex;
     align-items: center;
-    padding: 8px 15px;
+    justify-content: center; /* 内容居中 */
+    padding: 8px 10px;
     border-radius: 8px;
     transition: all 0.3s ease;
     color: #555;
@@ -1032,33 +1042,50 @@ footer {
     font-weight: 500;
 }
 
+/* 置信度条样式 */
 .confidence-bar {
-    height: 8px;
-    background-color: #e0e0e0;
-    border-radius: 4px;
+    height: 10px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
     overflow: hidden;
+    margin-top: 5px;
     margin-bottom: 5px;
 }
 
 .confidence-fill {
     height: 100%;
-    background-color: #2196f3;
-    border-radius: 4px;
-    transition: width 0.5s ease;
-    width: 0; /* 默认宽度为0 */
+    width: 0;
+    border-radius: 10px;
+    transition: width 0.3s ease;
 }
 
-/* 为不同的置信度值设置不同的颜色 */
 .confidence-fill-low {
-    background-color: #f44336; /* 低置信度为红色 */
+    background: linear-gradient(90deg, #f44336, #ff9800);
 }
 
 .confidence-fill-medium {
-    background-color: #ff9800; /* 中等置信度为橙色 */
+    background: linear-gradient(90deg, #ff9800, #ffc107);
 }
 
 .confidence-fill-high {
-    background-color: #4caf50; /* 高置信度为绿色 */
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+}
+
+/* 良性置信度样式 */
+.benign-fill {
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+}
+
+.benign-fill.confidence-fill-low {
+    background: linear-gradient(90deg, #f44336, #ff9800);
+}
+
+.benign-fill.confidence-fill-medium {
+    background: linear-gradient(90deg, #ff9800, #ffc107);
+}
+
+.benign-fill.confidence-fill-high {
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
 }
 
 .result-image-container {
