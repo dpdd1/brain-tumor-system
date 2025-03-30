@@ -1390,12 +1390,12 @@ def records():
             else:
                 page_name = '肿瘤检测'
         elif 'uploads/' in mask_image and 'result_' in mask_image:
-            page_name = '脑部检测'
+            page_name = 'AI分析'
         # 对不同的命名模式进行额外检查
         elif 'segmentation_' in mask_image or 'overlay_' in mask_image:
             page_name = '肿瘤分割'
         elif 'brain_' in mask_image:
-            page_name = '脑部检测'
+            page_name = 'AI分析'
         elif any(x in mask_image for x in ['tumor', 'cancer', 'detect']):
             page_name = '肿瘤检测'
             
@@ -1635,12 +1635,12 @@ def search_records():
                 else:
                     page_name = '肿瘤检测'
             elif 'uploads/' in mask_image and 'result_' in mask_image:
-                page_name = '脑部检测'
+                page_name = 'AI分析'
             # 对不同的命名模式进行额外检查
             elif 'segmentation_' in mask_image or 'overlay_' in mask_image:
                 page_name = '肿瘤分割'
             elif 'brain_' in mask_image:
-                page_name = '脑部检测'
+                page_name = 'AI分析'
             elif any(x in mask_image for x in ['tumor', 'cancer', 'detect']):
                 page_name = '肿瘤检测'
             
@@ -1694,12 +1694,12 @@ def get_record(record_id):
             else:
                 page_name = '肿瘤检测'
         elif 'uploads/' in mask_image and 'result_' in mask_image:
-            page_name = '脑部检测'
+            page_name = 'AI分析'
         # 对不同的命名模式进行额外检查
         elif 'segmentation_' in mask_image or 'overlay_' in mask_image:
             page_name = '肿瘤分割'
         elif 'brain_' in mask_image:
-            page_name = '脑部检测'
+            page_name = 'AI分析'
         elif any(x in mask_image for x in ['tumor', 'cancer', 'detect']):
             page_name = '肿瘤检测'
         
@@ -1732,7 +1732,7 @@ def get_record(record_id):
                     "confidence": confidence,
                     "description": f"{'检测到肿瘤' if has_tumor else '未检测到肿瘤'}（置信度: {confidence:.1f}%）"
                 }
-            elif page_name == '脑部检测':
+            elif page_name == 'AI分析':
                 # 为脑部检测生成模拟数据
                 tumor_types = ["胶质瘤", "脑膜瘤", "垂体瘤", "转移性肿瘤"]
                 tumor_type = random.choice(tumor_types)
@@ -2802,11 +2802,11 @@ def get_detection_info(record):
         if is_segmentation:
             page_name = '肿瘤分割'
         elif json_metadata and 'class_info' in json_metadata:
-            page_name = '脑部检测'
+            page_name = 'AI分析'
         elif any(kw in mask_image.lower() for kw in ['result', 'detection', '检测']):
             page_name = '肿瘤检测'
         elif 'brain' in mask_image.lower() or '脑部' in mask_image:
-            page_name = '脑部检测'
+            page_name = 'AI分析'
         elif 'video' in mask_image.lower() or '视频' in mask_image:
             page_name = '视频检测'
             
@@ -2817,7 +2817,7 @@ def get_detection_info(record):
             if '分割' in source or 'segment' in source.lower():
                 page_name = '肿瘤分割'
             elif ('检测' in source and '脑部' in source) or 'brain' in source.lower():
-                page_name = '脑部检测'
+                page_name = 'AI分析'
             elif ('检测' in source and '肿瘤' in source) or 'tumor' in source.lower():
                 page_name = '肿瘤检测'
             elif '视频' in source or 'video' in source.lower():
@@ -2830,7 +2830,7 @@ def get_detection_info(record):
             if '分割' in source or 'segment' in source.lower():
                 page_name = '肿瘤分割'
             elif ('检测' in source and '脑部' in source) or 'brain' in source.lower():
-                page_name = '脑部检测'
+                page_name = 'AI分析'
             elif ('检测' in source and '肿瘤' in source) or 'tumor' in source.lower():
                 page_name = '肿瘤检测'
             elif '视频' in source or 'video' in source.lower():
@@ -3022,10 +3022,10 @@ def get_database_data():
                 CASE
                     WHEN mask_image LIKE '%mask%' OR mask_image LIKE '%overlay%' OR 
                          mask_image LIKE '%segmentation%' OR mask_image LIKE '%分割%' THEN '肿瘤分割'
-                    WHEN json_extract(json_metadata, '$.class_info') IS NOT NULL THEN '脑部检测'
+                    WHEN json_extract(json_metadata, '$.class_info') IS NOT NULL THEN 'AI分析'
                     WHEN mask_image LIKE '%result%' OR mask_image LIKE '%detection%' OR 
                          mask_image LIKE '%检测%' THEN '肿瘤检测'
-                    WHEN mask_image LIKE '%brain%' OR mask_image LIKE '%脑部%' THEN '脑部检测'
+                    WHEN mask_image LIKE '%brain%' OR mask_image LIKE '%脑部%' THEN 'AI分析'
                     WHEN mask_image LIKE '%video%' OR mask_image LIKE '%视频%' THEN '视频检测'
                     WHEN json_extract(json_metadata, '$.operation_type') LIKE '%分割%' THEN '肿瘤分割'
                     WHEN json_extract(detection_info, '$.detection_source') LIKE '%分割%' THEN '肿瘤分割'
@@ -3099,7 +3099,7 @@ def api_data():
                     item['detection_result'] = "无肿瘤"
                 else:
                     item['detection_result'] = "有肿瘤"
-            elif item['page_name'] == '脑部检测':
+            elif item['page_name'] == 'AI分析':
                 # 显示具体肿瘤类型
                 item['detection_result'] = item['tumor_type']
             else:

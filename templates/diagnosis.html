@@ -168,7 +168,7 @@
                 <li><a href="{{ url_for('data_analysis') }}"><i class="fas fa-chart-bar"></i> 数据大屏</a></li>
                 <li class="active"><a href="{{ url_for('diagnosis') }}"><i class="fas fa-search"></i> 肿瘤检测</a></li>
                 <li><a href="{{ url_for('segmentation') }}"><i class="fas fa-crop-alt"></i> 肿瘤分割</a></li>
-                <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> 脑部检测</a></li>
+                <li><a href="{{ url_for('analysis') }}"><i class="fas fa-brain"></i> AI分析</a></li>
                 <li><a href="{{ url_for('video_detection') }}"><i class="fas fa-video"></i> 视频检测</a></li>
                 <li><a href="{{ url_for('records') }}"><i class="fas fa-clipboard-list"></i> 治疗记录</a></li>
                 <li class="user-profile">
@@ -192,8 +192,8 @@
     <main>
         <div class="diagnosis-container card-container">
             <div class="card-header">
-                <i class="fas fa-stethoscope card-icon"></i>
-                <h2>脑肿瘤辅助诊断</h2>
+                <i class="fas fa-search card-icon"></i>
+                <h2></i>脑肿瘤辅助诊断</h2>
                 <div class="diagnosis-status {% if result and result.has_tumor %}status-warning{% else %}status-success{% endif %}">
                     <i class="fas {% if result and result.has_tumor %}fa-exclamation-triangle{% else %}fa-check-circle{% endif %}"></i>
                     {% if result and result.has_tumor %}有肿瘤{% else %}无肿瘤{% endif %}
