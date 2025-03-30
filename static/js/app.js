@@ -536,7 +536,8 @@ const Dashboard = () => {
                                     size: 10
                                 },
                                 stepSize: 20,
-                                showLabelBackdrop: true
+                                showLabelBackdrop: true,
+                                z: 1
                             },
                             grid: {
                                 color: 'rgba(200, 200, 200, 0.2)'
@@ -546,6 +547,9 @@ const Dashboard = () => {
                                 lineWidth: 1
                             },
                             pointLabels: {
+                                callback: function(value, index) {
+                                    return `${value} (${confidences[index].toFixed(2)}%)`;
+                                },
                                 font: {
                                     size: 12,
                                     weight: 'bold'
@@ -559,9 +563,12 @@ const Dashboard = () => {
                         legend: {
                             display: false
                         },
+                        datalabels: {
+                            display: false // 确保不显示数据点上的标签
+                        },
                         title: {
                             display: true,
-                            text: '置信度最高的六位用户',
+                            text: '置信度最高的六位用户 (数值已显示在用户名旁)',
                             font: {
                                 size: 16,
                                 weight: 'normal'

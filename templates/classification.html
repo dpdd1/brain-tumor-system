@@ -838,7 +838,7 @@
             
             // 应用阈值过滤
             const filteredMalignancy = filterByThreshold(malignancy, detectionThreshold, true);
-            const filteredDetections = filterByThreshold(detections, detectionThreshold);
+            const filteredDetections = filterByThreshold(detections, classificationThreshold);
             const filteredClassifications = filterByThreshold(classifications, classificationThreshold);
             
             const resultHTML = `
@@ -854,21 +854,21 @@
                     <div class="threshold-header" id="thresholdToggle">
                         <h4>
                             <i class="fas fa-filter"></i> 阈值过滤：
-                            分类阈值 <span class="threshold-badge">${classificationThreshold}%</span> 
-                            检测阈值 <span class="threshold-badge">${detectionThreshold}%</span>
+                            分类阈值(肿瘤分类) <span class="threshold-badge">${classificationThreshold}%</span> 
+                            检测阈值(良恶性分析) <span class="threshold-badge">${detectionThreshold}%</span>
                         </h4>
                         <span class="threshold-toggle"><i class="fas fa-chevron-down"></i></span>
                     </div>
                     <div class="threshold-content" id="thresholdContent" style="display: none;">
                         <div class="threshold-item">
-                            <label>分类阈值 (显示置信度大于该值的结果)</label>
+                            <label>分类阈值 (应用于肿瘤分类结果)</label>
                             <div class="threshold-slider">
                                 <input type="range" id="classThreshold" min="0" max="100" value="${classificationThreshold}" step="1">
                                 <span class="threshold-value" id="classThresholdValue">${classificationThreshold}%</span>
                             </div>
                         </div>
                         <div class="threshold-item">
-                            <label>检测阈值 (显示置信度大于该值的结果)</label>
+                            <label>检测阈值 (应用于良恶性分析)</label>
                             <div class="threshold-slider">
                                 <input type="range" id="detectThreshold" min="0" max="100" value="${detectionThreshold}" step="1">
                                 <span class="threshold-value" id="detectThresholdValue">${detectionThreshold}%</span>
@@ -887,7 +887,7 @@
                 </div>
                 ` : ''}
                 ${createSection('📊 良恶性分析', filteredMalignancy, true)}
-                ${createSection('🔍 肿瘤检测结果', filteredDetections)}
+                ${createSection('🔍 肿瘤分类结果', filteredDetections)}
                 ${createSection('📈 类型概率分布', filteredClassifications)}
                 ${createAnalysis(data.medical_analysis)}
                 ${data.save_message ? `
@@ -1238,8 +1238,8 @@
                     `;
                 }
                 
-                // 方法5: 如果是肿瘤检测结果，也强制添加进度条
-                if (!progressBar && title.includes('肿瘤检测')) {
+                // 方法5: 如果是肿瘤分类结果，也强制添加进度条
+                if (!progressBar && title.includes('肿瘤分类')) {
                     // 从内容中提取数字
                     const numMatch = itemContent.match(/(\d+)/);
                     let percent = numMatch ? parseInt(numMatch[1]) : 70; // 默认70%

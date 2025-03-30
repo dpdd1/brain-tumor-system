@@ -921,16 +921,29 @@ def get_ai_response(model_type, class_info, detection_info):
 2. 良恶性检测：良性概率{detection_info['benign_prob']:.1f}%，恶性概率{detection_info['malignant_prob']:.1f}%，{malignancy_text}
 3. 肿瘤位置信息：{position_text}
 
-请结合肿瘤良恶性概率和位置信息进行详细分析：
-- 该肿瘤{malignancy_text}对患者意味着什么
-- 基于{detection_info['benign_prob']:.1f}%的良性概率和{detection_info['malignant_prob']:.1f}%的恶性概率，评估患者风险
-- 良性vs恶性在此类肿瘤中的典型表现差异
-- 基于位置信息，该肿瘤可能影响的脑区功能
-- 根据位置和良恶性分析的治疗方案建议
-- 针对该概率分布的随访建议和检查频率
-- 针对这种良恶性概率患者的日常注意事项
+请按照以下固定结构，结合肿瘤良恶性概率和位置信息进行详细分析：
 
-用中文回答，分点说明，控制在300字以内。"""
+【诊断摘要】
+• 简要总结肿瘤类型和良恶性倾向
+
+【病情评估】
+• 该肿瘤{malignancy_text}对患者意味着什么
+• 基于{detection_info['benign_prob']:.1f}%的良性概率和{detection_info['malignant_prob']:.1f}%的恶性概率，评估患者风险
+
+【典型表现】
+• 良性vs恶性在此类肿瘤中的典型表现差异
+
+【功能影响】
+• 基于位置信息，该肿瘤可能影响的脑区功能
+
+【治疗建议】
+• 根据位置和良恶性分析的治疗方案建议
+• 针对该概率分布的随访建议和检查频率
+
+【日常注意事项】
+• 针对这种良恶性概率患者的日常注意事项
+
+用中文回答，分点说明，控制在300字以内。请保持以上标题格式（带【】符号）。"""
 
     # 构造请求参数
     payload = {
@@ -1808,23 +1821,25 @@ def get_quick_analysis(class_info, detection_info):
     # 生成分析结果
     analysis = f"""【快速医学分析】
 
-▶ 肿瘤类型：{tumor_type}（置信度：{probability:.1f}%）
-{template['description']}
+【诊断摘要】
+• 肿瘤类型：{tumor_type}（置信度：{probability:.1f}%）
+• {template['description']}
 
-▶ 良恶性分析：{malignancy_text}
-- 良性概率：{benign_prob:.1f}%
-- 恶性概率：{malignant_prob:.1f}%
-- {template['risk_levels'][risk_level]}
+【良恶性评估】
+• {malignancy_text}
+• 良性概率：{benign_prob:.1f}%
+• 恶性概率：{malignant_prob:.1f}%
+• {template['risk_levels'][risk_level]}
 
-▶ 肿瘤位置：
-{position_description}
+【位置信息】
+• {position_description}
 
-▶ 诊疗建议：
-- {template['follow_up']}
-- {'建议尽快就医进行进一步检查' if malignant_prob > 60 else '定期复查观察病情变化'}
+【诊疗建议】
+• {template['follow_up']}
+• {'建议尽快就医进行进一步检查' if malignant_prob > 60 else '定期复查观察病情变化'}
 
-▶ 日常注意事项：
-{template['tips']}
+【日常注意事项】
+• {template['tips']}
 
 ※ 注意：此分析仅供参考，请咨询专业医生获取准确诊断和治疗方案。"""
     
