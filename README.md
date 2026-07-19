@@ -1,11 +1,32 @@
-
+<img width="693" height="355" alt="image" src="https://github.com/user-attachments/assets/b5bd6ab3-40a1-46db-bf47-d9e1074c910b" />
 
 # 脑肿瘤智能诊断分析系统
 
 ## 简介
 
 脑肿瘤智能诊断分析系统是一个基于深度学习的医学影像分析平台，提供脑肿瘤的分类、检测、分割和视频诊断功能。系统采用Flask框架构建Web应用，集成了多种AI模型，为医疗机构和医生提供智能辅助诊断工具。
+
 演示视频链接🔗：https://www.bilibili.com/video/BV1RiL8zPEyd/?share_source=copy_web&vd_source=2da3835cf91a5e486f5b560ecb77f289
+
+## 界面展示
+
+<img width="1920" height="1020" alt="image" src="https://github.com/user-attachments/assets/6900f0e0-753d-455b-9d45-93d006fc5354" />
+
+<img width="1273" height="635" alt="image" src="https://github.com/user-attachments/assets/0c4bc972-820c-486b-949c-43d45ce97c6b" />
+
+<img width="1273" height="638" alt="image" src="https://github.com/user-attachments/assets/58243c2e-9345-4e7e-88bb-4cb3bdf62df5" />
+
+<img width="1274" height="639" alt="image" src="https://github.com/user-attachments/assets/26026681-320b-4467-b049-2c56c63b1ea9" />
+
+<img width="1276" height="644" alt="image" src="https://github.com/user-attachments/assets/cb84771c-4fea-4252-a9ff-a6a264ef4731" />
+
+<img width="1274" height="637" alt="image" src="https://github.com/user-attachments/assets/53f55e2e-3035-47d9-8060-6e67c263ebfa" />
+
+<img width="1274" height="631" alt="image" src="https://github.com/user-attachments/assets/409a6cb5-15c0-4f7c-ba39-7a74b76a82f2" />
+
+<img width="1264" height="635" alt="image" src="https://github.com/user-attachments/assets/de05b9f5-7943-4922-b082-6b9f148f4603" />
+
+<img width="1275" height="634" alt="image" src="https://github.com/user-attachments/assets/0dac9df1-e8a8-49b4-afe5-b84fd4386e27" />
 
 ## 功能特性
 
