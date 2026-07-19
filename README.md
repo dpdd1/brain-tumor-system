@@ -5,6 +5,7 @@
 ## 简介
 
 脑肿瘤智能诊断分析系统是一个基于深度学习的医学影像分析平台，提供脑肿瘤的分类、检测、分割和视频诊断功能。系统采用Flask框架构建Web应用，集成了多种AI模型，为医疗机构和医生提供智能辅助诊断工具。
+演示视频链接🔗：https://www.bilibili.com/video/BV1RiL8zPEyd/?share_source=copy_web&vd_source=2da3835cf91a5e486f5b560ecb77f289
 
 ## 功能特性
 
