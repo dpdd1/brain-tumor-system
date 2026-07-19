@@ -9,8 +9,6 @@
 
 ## 界面展示
 
-<img width="693" height="355" alt="image" src="https://github.com/user-attachments/assets/b5bd6ab3-40a1-46db-bf47-d9e1074c910b" />
-
 <img width="1273" height="635" alt="image" src="https://github.com/user-attachments/assets/0c4bc972-820c-486b-949c-43d45ce97c6b" />
 
 <img width="1273" height="638" alt="image" src="https://github.com/user-attachments/assets/58243c2e-9345-4e7e-88bb-4cb3bdf62df5" />
