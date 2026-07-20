@@ -211,4 +211,6 @@ python app.py
 
 ---
 
+* Contributor: @cjj-create
+
 *脑肿瘤智能诊断分析系统 - 让AI助力医学诊断*
